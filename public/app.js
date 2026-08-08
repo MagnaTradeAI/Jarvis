@@ -8,6 +8,10 @@ const headRow = document.getElementById('matrix-head');
 const body = document.getElementById('matrix-body');
 const umsatzGrid = document.getElementById('umsatz-grid');
 const refreshBtn = document.getElementById('refresh-umsatz');
+const lagerGrid = document.getElementById('lager-grid');
+const refreshLagerBtn = document.getElementById('refresh-lager');
+const rabattGrid = document.getElementById('rabatt-grid');
+const refreshRabattBtn = document.getElementById('refresh-rabatt');
 
 let config = null;
 
@@ -109,5 +113,122 @@ function renderUmsatz(results) {
 
 refreshBtn.addEventListener('click', loadUmsatz);
 
+async function loadLager() {
+  lagerGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  try {
+    const res = await fetch('/api/lager');
+    const data = await res.json();
+    renderLager(data.results || []);
+  } catch (err) {
+    lagerGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+  }
+}
+
+function renderLager(results) {
+  if (!results.length) {
+    lagerGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Lagerbestand-Warnung in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    return;
+  }
+
+  lagerGrid.innerHTML = results.map(r => {
+    const label = PROJECT_LABEL[r.project] || r.project;
+    if (r.error) {
+      return `<div class="lager-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
+    }
+    if (!r.warnungen.length) {
+      return `<div class="lager-card"><h3>${label}</h3><p class="lager-ok">Alles im grünen Bereich (${r.geprueft} Produkte geprüft)</p></div>`;
+    }
+    const items = r.warnungen.map(w => {
+      const out = w.status === 'outofstock';
+      return `<div class="lager-item">
+        <span class="name">${w.name}${w.sku !== '–' ? ' (' + w.sku + ')' : ''}</span>
+        <span class="qty${out ? ' out' : ''}">${out ? 'AUSVERKAUFT' : w.bestand + ' Stk.'}</span>
+      </div>`;
+    }).join('');
+    return `<div class="lager-card"><h3>${label}</h3>${items}</div>`;
+  }).join('');
+}
+
+refreshLagerBtn.addEventListener('click', loadLager);
+
+async function loadRabatt() {
+  rabattGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  try {
+    const res = await fetch('/api/rabatt');
+    const data = await res.json();
+    renderRabatt(data.results || []);
+  } catch (err) {
+    rabattGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+  }
+}
+
+function renderRabatt(results) {
+  if (!results.length) {
+    rabattGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Rabatt-Automatik in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    return;
+  }
+
+  rabattGrid.innerHTML = results.map(r => {
+    const label = PROJECT_LABEL[r.project] || r.project;
+    if (r.error) {
+      return `<div class="rabatt-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
+    }
+    if (!r.kandidaten.length) {
+      return `<div class="rabatt-card"><h3>${label}</h3><p class="lager-ok">Keine Lagerhüter gefunden (${r.geprueft} Produkte geprüft)</p></div>`;
+    }
+    const items = r.kandidaten.map(k => {
+      const status = k.bereitsImSale ? 'IM SALE' : `${k.vorschlagProzent}% VORSCHLAG`;
+      const disabled = k.bereitsImSale ? 'disabled' : '';
+      return `<div class="rabatt-item">
+        <span class="info">${k.name}
+          <span class="meta">Bestand ${k.bestand} · ${k.verkauftLetzte60Tage} verkauft (60T) · ${k.regulaerpreis.toFixed(2)} €</span>
+        </span>
+        <button class="apply-btn${k.bereitsImSale ? ' done' : ''}" ${disabled}
+          data-project="${r.project}" data-id="${k.id}" data-percent="${k.vorschlagProzent}">
+          ${status}
+        </button>
+      </div>`;
+    }).join('');
+    return `<div class="rabatt-card"><h3>${label}</h3>${items}</div>`;
+  }).join('');
+
+  rabattGrid.querySelectorAll('.apply-btn:not([disabled])').forEach(btn => {
+    btn.addEventListener('click', onApplyClick);
+  });
+}
+
+async function onApplyClick(e) {
+  const btn = e.currentTarget;
+  const project = btn.dataset.project;
+  const productId = btn.dataset.id;
+  const percent = btn.dataset.percent;
+
+  btn.disabled = true;
+  btn.textContent = 'WIRD ANGEWENDET…';
+
+  try {
+    const res = await fetch('/api/rabatt/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project, productId: Number(productId), percent: Number(percent) })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = `IM SALE BIS ${result.gueltigBis}${result.couponCode ? ' · ' + result.couponCode : ''}`;
+      btn.classList.add('done');
+    } else {
+      btn.textContent = result.error || 'FEHLGESCHLAGEN';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = 'FEHLGESCHLAGEN';
+    btn.disabled = false;
+  }
+}
+
+refreshRabattBtn.addEventListener('click', loadRabatt);
+
 loadConfig();
 loadUmsatz();
+loadLager();
+loadRabatt();
