@@ -1,0 +1,72 @@
+{
+  "projects": [
+    {
+      "id": "pawvero",
+      "label": "Pawvero"
+    },
+    {
+      "id": "wabipaper",
+      "label": "Wabipaper"
+    },
+    {
+      "id": "luminara",
+      "label": "Luminara Syndicate"
+    },
+    {
+      "id": "magnatrade",
+      "label": "MagnaTrade-AI"
+    }
+  ],
+  "functions": [
+    {
+      "id": "umsatz-analyse",
+      "label": "Umsatz-Analyse"
+    },
+    {
+      "id": "rabatt-automatik",
+      "label": "Rabatt-Automatik"
+    },
+    {
+      "id": "produktbeschreibungen",
+      "label": "Produktbeschreibungen"
+    },
+    {
+      "id": "cross-selling",
+      "label": "Cross-Selling-Vorschläge"
+    },
+    {
+      "id": "lager-warnung",
+      "label": "Lagerbestand-Warnung"
+    }
+  ],
+  "matrix": {
+    "pawvero": {
+      "umsatz-analyse": "off",
+      "rabatt-automatik": "off",
+      "produktbeschreibungen": "off",
+      "cross-selling": "off",
+      "lager-warnung": "off"
+    },
+    "wabipaper": {
+      "umsatz-analyse": "off",
+      "rabatt-automatik": "off",
+      "produktbeschreibungen": "off",
+      "cross-selling": "off",
+      "lager-warnung": "off"
+    },
+    "luminara": {
+      "umsatz-analyse": "off",
+      "rabatt-automatik": "off",
+      "produktbeschreibungen": "off",
+      "cross-selling": "off",
+      "lager-warnung": "off"
+    },
+    "magnatrade": {
+      "umsatz-analyse": "off",
+      "rabatt-automatik": "off",
+      "produktbeschreibungen": "off",
+      "cross-selling": "off",
+      "lager-warnung": "off"
+    }
+  }
+}
