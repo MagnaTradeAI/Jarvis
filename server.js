@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const umsatzAnalyse = require('./modules/umsatz-analyse');
 const lagerWarnung = require('./modules/lager-warnung');
+const rabattAutomatik = require('./modules/rabatt-automatik');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,3 +42,9 @@ app.post('/api/config', (req, res) => {
   }
 
   config.matrix[project][fn] = level;
+  saveConfig(config);
+
+  res.json({ ok: true, project, function: fn, level });
+});
+
+app.get('/api/umsatz', async (req,
