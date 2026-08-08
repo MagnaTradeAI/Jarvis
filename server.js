@@ -47,4 +47,58 @@ app.post('/api/config', (req, res) => {
   res.json({ ok: true, project, function: fn, level });
 });
 
-app.get('/api/umsatz', async (req,
+app.get('/api/umsatz', async (req, res) => {
+  try {
+    const results = await umsatzAnalyse.run();
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/lager', async (req, res) => {
+  try {
+    const results = await lagerWarnung.run();
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/rabatt', async (req, res) => {
+  try {
+    const results = await rabattAutomatik.run();
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/rabatt/apply', async (req, res) => {
+  const { project, productId, percent } = req.body || {};
+  if (!project || !productId) {
+    return res.status(400).json({ error: 'Erwartet: project, productId' });
+  }
+  try {
+    const result = await rabattAutomatik.applyDiscount(project, productId, percent);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'online', time: new Date().toISOString() });
+});
+
+app.listen(PORT, () => {
+  console.log(`Jarvis läuft auf Port ${PORT}`);
+});
+
+// Alle 6 Stunden prüfen, ob für AUTONOM-geschaltete Projekte Rabatte fällig sind
+const AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+setInterval(() => {
+  rabattAutomatik.autoApplyForAutonomProjects().catch((err) => {
+    console.error('Automatischer Rabatt-Check fehlgeschlagen:', err.message);
+  });
+}, AUTO_CHECK_INTERVAL_MS);
