@@ -125,4 +125,16 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .umsatz-card.error p { font-size: 11px; color: var(--magenta); margin: 0; }
 .umsatz-empty { font-size: 12px; color: var(--dim); }
 
+.lager-grid { display: grid; gap: 12px; }
+.lager-card { border: 1px solid var(--panel-line); background: #0a0a0d; padding: 16px; }
+.lager-card h3 { font-family: 'Chakra Petch', sans-serif; font-size: 13px; letter-spacing: 0.06em; margin: 0 0 10px; color: var(--white); }
+.lager-card.error { border-color: var(--magenta); }
+.lager-card.error p { font-size: 11px; color: var(--magenta); margin: 0; }
+.lager-item { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; padding: 8px 0; border-top: 1px solid var(--panel-line); }
+.lager-item:first-of-type { border-top: none; }
+.lager-item .name { color: var(--white); }
+.lager-item .qty { color: var(--magenta); white-space: nowrap; }
+.lager-item .qty.out { font-weight: 600; }
+.lager-ok { font-size: 11px; color: var(--cyan); }
+
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
