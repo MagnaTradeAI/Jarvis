@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis // Root Node</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="sigil" aria-hidden="true">
+    <svg viewBox="0 0 100 100" width="44" height="44">
+      <path class="sigil-hex" d="M50 4 L91 27 L91 73 L50 96 L14 76" />
+      <circle class="sigil-node" cx="50" cy="4" r="3.5" />
+      <circle class="sigil-node" cx="91" cy="73" r="3.5" />
+      <circle class="sigil-node" cx="14" cy="76" r="3.5" />
+      <path class="sigil-glitch" d="M91 27 L78 34 M78 34 L91 40" />
+    </svg>
+  </div>
+  <div class="header-text">
+    <h1>JARVIS</h1>
+    <p class="subtitle">ROOT NODE // 4 SEKTOREN VERBUNDEN</p>
+  </div>
+  <div class="status" id="status">
+    <span class="status-dot"></span>
+    <span id="status-label">VERBINDE…</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-head">
+      <h2>STEUERMATRIX</h2>
+      <p class="hint">PROJEKT × FUNKTION × FREIGABESTUFE — Klick auf ein Feld schaltet die Stufe weiter</p>
+    </div>
+
+    <div class="table-wrap">
+      <table id="matrix">
+        <thead>
+          <tr id="matrix-head"></tr>
+        </thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="node off"></span> AUS</div>
+      <div class="legend-item"><span class="node beobachten"></span> BEOBACHTEN</div>
+      <div class="legend-item"><span class="node freigabe"></span> VORSCHLAG · FREIGABE</div>
+      <div class="legend-item"><span class="node autonom"></span> AUTONOM</div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p>JARVIS CORE — MAGNATRADE-AI</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
