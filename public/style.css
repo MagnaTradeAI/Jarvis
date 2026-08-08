@@ -137,4 +137,39 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .lager-item .qty.out { font-weight: 600; }
 .lager-ok { font-size: 11px; color: var(--cyan); }
 
+.rabatt-grid { display: grid; gap: 12px; }
+.rabatt-card { border: 1px solid var(--panel-line); background: #0a0a0d; padding: 16px; }
+.rabatt-card h3 { font-family: 'Chakra Petch', sans-serif; font-size: 13px; letter-spacing: 0.06em; margin: 0 0 10px; color: var(--white); }
+.rabatt-card.error { border-color: var(--magenta); }
+.rabatt-card.error p { font-size: 11px; color: var(--magenta); margin: 0; }
+
+.rabatt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  padding: 10px 0;
+  border-top: 1px solid var(--panel-line);
+}
+.rabatt-item:first-of-type { border-top: none; }
+.rabatt-item .info { color: var(--white); }
+.rabatt-item .meta { display: block; color: var(--dim); margin-top: 2px; }
+
+.apply-btn {
+  appearance: none;
+  border: 1px solid var(--magenta);
+  background: transparent;
+  color: var(--magenta);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.apply-btn:hover { background: rgba(255, 42, 109, 0.1); }
+.apply-btn:disabled { opacity: 0.4; cursor: default; }
+.apply-btn.done { border-color: var(--cyan); color: var(--cyan); }
+
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
