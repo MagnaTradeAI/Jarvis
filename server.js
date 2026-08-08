@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const umsatzAnalyse = require('./modules/umsatz-analyse');
+const lagerWarnung = require('./modules/lager-warnung');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,24 +41,3 @@ app.post('/api/config', (req, res) => {
   }
 
   config.matrix[project][fn] = level;
-  saveConfig(config);
-
-  res.json({ ok: true, project, function: fn, level });
-});
-
-app.get('/api/umsatz', async (req, res) => {
-  try {
-    const results = await umsatzAnalyse.run();
-    res.json({ results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'online', time: new Date().toISOString() });
-});
-
-app.listen(PORT, () => {
-  console.log(`Jarvis läuft auf Port ${PORT}`);
-});
