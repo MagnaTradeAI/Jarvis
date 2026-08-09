@@ -6,6 +6,7 @@ const lagerWarnung = require('./modules/lager-warnung');
 const rabattAutomatik = require('./modules/rabatt-automatik');
 const crossSelling = require('./modules/cross-selling');
 const produktbeschreibungen = require('./modules/produktbeschreibungen');
+const jarvisChat = require('./modules/jarvis-chat');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -145,6 +146,19 @@ app.post('/api/produktbeschreibungen/apply', async (req, res) => {
   }
   try {
     const result = await produktbeschreibungen.applyContent(project, payload);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/chat', async (req, res) => {
+  const { messages } = req.body || {};
+  if (!Array.isArray(messages) || !messages.length) {
+    return res.status(400).json({ error: 'Erwartet: messages (Array)' });
+  }
+  try {
+    const result = await jarvisChat.chat(messages);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
