@@ -14,6 +14,7 @@ const rabattGrid = document.getElementById('rabatt-grid');
 const refreshRabattBtn = document.getElementById('refresh-rabatt');
 const crossGrid = document.getElementById('cross-grid');
 const refreshCrossBtn = document.getElementById('refresh-cross');
+const pbShop = document.getElementById('pb-shop');
 const pbProduct = document.getElementById('pb-product');
 const pbPreis = document.getElementById('pb-einkaufspreis');
 const pbGenerateBtn = document.getElementById('pb-generate');
@@ -313,8 +314,10 @@ async function onCrossApplyClick(e) {
 refreshCrossBtn.addEventListener('click', loadCross);
 
 async function loadPbProducts() {
+  const project = pbShop.value;
+  pbProduct.innerHTML = '<option value="">Lädt…</option>';
   try {
-    const res = await fetch('/api/produktbeschreibungen/products?project=pawvero');
+    const res = await fetch(`/api/produktbeschreibungen/products?project=${project}`);
     const data = await res.json();
     if (data.error) {
       pbProduct.innerHTML = `<option value="">${data.error}</option>`;
@@ -327,24 +330,37 @@ async function loadPbProducts() {
   }
 }
 
+pbShop.addEventListener('change', () => {
+  pbResult.innerHTML = '';
+  pbLastDraft = null;
+  pbPreis.disabled = pbShop.value !== 'pawvero';
+  if (pbPreis.disabled) pbPreis.value = '';
+  loadPbProducts();
+});
+
 pbGenerateBtn.addEventListener('click', async () => {
+  const project = pbShop.value;
   const productId = Number(pbProduct.value);
   const einkaufspreis = Number(pbPreis.value);
 
-  if (!productId || !einkaufspreis) {
-    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen und Einkaufspreis eingeben.</p>';
+  if (!productId) {
+    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen.</p>';
+    return;
+  }
+  if (project === 'pawvero' && !einkaufspreis) {
+    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Einkaufspreis eingeben.</p>';
     return;
   }
 
   pbGenerateBtn.disabled = true;
   pbGenerateBtn.textContent = 'GENERIERT…';
-  pbResult.innerHTML = '<p class="umsatz-empty">Recherchiert Keywords und schreibt Text…</p>';
+  pbResult.innerHTML = '<p class="umsatz-empty">Erstellt Text…</p>';
 
   try {
     const res = await fetch('/api/produktbeschreibungen/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project: 'pawvero', productId, einkaufspreis })
+      body: JSON.stringify({ project, productId, einkaufspreis: project === 'pawvero' ? einkaufspreis : undefined })
     });
     const data = await res.json();
 
@@ -356,7 +372,7 @@ pbGenerateBtn.addEventListener('click', async () => {
 
     pbLastDraft = { ...data, productId };
     pbResult.innerHTML = `
-      <div class="pb-field"><span class="label">VORSCHLAGSPREIS</span><span class="pb-price">${data.vorschlagPreis.toFixed(2)} €</span></div>
+      ${data.vorschlagPreis ? `<div class="pb-field"><span class="label">VORSCHLAGSPREIS</span><span class="pb-price">${data.vorschlagPreis.toFixed(2)} €</span></div>` : ''}
       <div class="pb-field"><span class="label">BESCHREIBUNG</span><span class="value">${data.description}</span></div>
       <div class="pb-field"><span class="label">SCHLAGWÖRTER</span><div class="pb-tags">${(data.tags || []).map(t => `<span class="pb-tag">${t}</span>`).join('')}</div></div>
       <div class="pb-field"><span class="label">META-TITLE</span><span class="value">${data.metaTitle || ''}</span></div>
@@ -386,7 +402,7 @@ async function onPbApply(e) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        project: 'pawvero',
+        project: pbShop.value,
         productId: pbLastDraft.productId,
         description: pbLastDraft.description,
         tags: pbLastDraft.tags,
