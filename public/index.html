@@ -90,6 +90,21 @@
     <button class="refresh-btn" id="refresh-cross" type="button">AKTUALISIEREN</button>
     <div class="cross-grid" id="cross-grid"></div>
   </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>PRODUKTBESCHREIBUNGEN // PAWVERO</h2>
+      <p class="hint">Einkaufspreis pro Generierung nötig (kein Speicherfeld) — schreibt Text, Tags, SEO-Felder und Preis nach WooCommerce</p>
+    </div>
+
+    <div class="pb-controls">
+      <select id="pb-product"><option value="">Produkt wählen…</option></select>
+      <input id="pb-einkaufspreis" type="number" step="0.01" min="0" placeholder="Einkaufspreis €">
+      <button class="refresh-btn" id="pb-generate" type="button">GENERIEREN</button>
+    </div>
+
+    <div class="pb-result" id="pb-result"></div>
+  </section>
 </main>
 
 <footer>
