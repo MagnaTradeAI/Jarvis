@@ -34,6 +34,22 @@
 <main>
   <section class="panel">
     <div class="panel-head">
+      <h2>MIT JARVIS SPRECHEN</h2>
+      <p class="hint">Mikrofon oder Text — Jarvis kann alles steuern, was in den Panels unten möglich ist. Spracheingabe braucht Chrome oder Edge.</p>
+    </div>
+
+    <div id="chat-log" class="chat-log"></div>
+
+    <div class="chat-controls">
+      <button class="mic-btn" id="mic-btn" type="button" title="Sprechen">🎤</button>
+      <input id="chat-input" type="text" placeholder="Nachricht an Jarvis…">
+      <button class="refresh-btn" id="chat-send" type="button">SENDEN</button>
+      <button class="mic-btn" id="tts-toggle" type="button" title="Antworten vorlesen">🔊</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
       <h2>STEUERMATRIX</h2>
       <p class="hint">PROJEKT × FUNKTION × FREIGABESTUFE — Klick auf ein Feld schaltet die Stufe weiter</p>
     </div>
