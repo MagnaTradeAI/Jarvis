@@ -19,9 +19,16 @@ const pbProduct = document.getElementById('pb-product');
 const pbPreis = document.getElementById('pb-einkaufspreis');
 const pbGenerateBtn = document.getElementById('pb-generate');
 const pbResult = document.getElementById('pb-result');
+const chatLog = document.getElementById('chat-log');
+const chatInput = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send');
+const micBtn = document.getElementById('mic-btn');
+const ttsToggle = document.getElementById('tts-toggle');
 
 let config = null;
 let pbLastDraft = null;
+let chatHistory = [];
+let ttsEnabled = true;
 
 async function loadConfig() {
   try {
@@ -425,6 +432,122 @@ async function onPbApply(e) {
     btn.disabled = false;
   }
 }
+
+function renderChat() {
+  if (!chatHistory.length) {
+    chatLog.innerHTML = '<p class="chat-empty">Noch keine Unterhaltung — frag z.B. "Wie viel Umsatz hat Pawvero diesen Monat?"</p>';
+    return;
+  }
+  chatLog.innerHTML = chatHistory.map(m => {
+    const text = typeof m.content === 'string' ? m.content : (m.content.find(b => b.type === 'text')?.text || '');
+    if (!text) return '';
+    return `<div class="chat-msg ${m.role}">${text}</div>`;
+  }).join('');
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function speak(text) {
+  if (!ttsEnabled || !text || !('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'de-DE';
+  window.speechSynthesis.speak(utter);
+}
+
+async function sendChatMessage(text) {
+  if (!text.trim()) return;
+  chatHistory.push({ role: 'user', content: text });
+  renderChat();
+  chatInput.value = '';
+  chatSendBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: chatHistory })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      chatHistory.push({ role: 'assistant', content: data.error });
+      renderChat();
+      return;
+    }
+
+    chatHistory = data.messages;
+    renderChat();
+    const lastText = chatHistory[chatHistory.length - 1]?.content;
+    const text2 = Array.isArray(lastText) ? lastText.find(b => b.type === 'text')?.text : lastText;
+    speak(text2 || data.reply || '');
+
+    loadConfig();
+    loadUmsatz();
+    loadLager();
+    loadRabatt();
+    loadCross();
+  } catch (err) {
+    chatHistory.push({ role: 'assistant', content: 'Verbindung fehlgeschlagen.' });
+    renderChat();
+  } finally {
+    chatSendBtn.disabled = false;
+  }
+}
+
+chatSendBtn.addEventListener('click', () => sendChatMessage(chatInput.value));
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') sendChatMessage(chatInput.value);
+});
+
+ttsToggle.addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  ttsToggle.classList.toggle('on', ttsEnabled);
+  if (!ttsEnabled) window.speechSynthesis.cancel();
+});
+ttsToggle.classList.add('on');
+
+const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognitionImpl) {
+  const recognition = new SpeechRecognitionImpl();
+  recognition.lang = 'de-DE';
+  recognition.continuous = false;
+  recognition.interimResults = false;
+
+  let listening = false;
+
+  micBtn.addEventListener('click', () => {
+    if (listening) {
+      recognition.stop();
+      return;
+    }
+    recognition.start();
+  });
+
+  recognition.addEventListener('start', () => {
+    listening = true;
+    micBtn.classList.add('active');
+  });
+
+  recognition.addEventListener('end', () => {
+    listening = false;
+    micBtn.classList.remove('active');
+  });
+
+  recognition.addEventListener('result', (e) => {
+    const transcript = e.results[0][0].transcript;
+    sendChatMessage(transcript);
+  });
+
+  recognition.addEventListener('error', () => {
+    listening = false;
+    micBtn.classList.remove('active');
+  });
+} else {
+  micBtn.disabled = true;
+  micBtn.title = 'Spracheingabe nicht unterstützt (Chrome/Edge nötig)';
+}
+
+renderChat();
 
 loadConfig();
 loadUmsatz();
