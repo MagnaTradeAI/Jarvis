@@ -12,6 +12,8 @@ const lagerGrid = document.getElementById('lager-grid');
 const refreshLagerBtn = document.getElementById('refresh-lager');
 const rabattGrid = document.getElementById('rabatt-grid');
 const refreshRabattBtn = document.getElementById('refresh-rabatt');
+const crossGrid = document.getElementById('cross-grid');
+const refreshCrossBtn = document.getElementById('refresh-cross');
 
 let config = null;
 
@@ -228,7 +230,85 @@ async function onApplyClick(e) {
 
 refreshRabattBtn.addEventListener('click', loadRabatt);
 
+async function loadCross() {
+  crossGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  try {
+    const res = await fetch('/api/cross-selling');
+    const data = await res.json();
+    renderCross(data.results || []);
+  } catch (err) {
+    crossGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+  }
+}
+
+function renderCross(results) {
+  if (!results.length) {
+    crossGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Cross-Selling-Vorschläge in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    return;
+  }
+
+  crossGrid.innerHTML = results.map(r => {
+    const label = PROJECT_LABEL[r.project] || r.project;
+    if (r.error) {
+      return `<div class="cross-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
+    }
+    if (!r.vorschlaege.length) {
+      return `<div class="cross-card"><h3>${label}</h3><p class="lager-ok">Noch keine Muster erkennbar (${r.ausgewerteteBestellungen} Bestellungen ausgewertet)</p></div>`;
+    }
+    const items = r.vorschlaege.map(v => {
+      const partnerNames = v.partner.map(p => `${p.name} (${p.count}×)`).join(', ');
+      const crossSellIds = v.partner.map(p => p.id).join(',');
+      return `<div class="cross-item">
+        <span class="info">${v.productName}
+          <span class="meta">Häufig zusammen mit: ${partnerNames}</span>
+        </span>
+        <button class="apply-btn" type="button"
+          data-project="${r.project}" data-id="${v.productId}" data-cross="${crossSellIds}">
+          ALS CROSS-SELL SETZEN
+        </button>
+      </div>`;
+    }).join('');
+    return `<div class="cross-card"><h3>${label}</h3>${items}</div>`;
+  }).join('');
+
+  crossGrid.querySelectorAll('.apply-btn').forEach(btn => {
+    btn.addEventListener('click', onCrossApplyClick);
+  });
+}
+
+async function onCrossApplyClick(e) {
+  const btn = e.currentTarget;
+  const project = btn.dataset.project;
+  const productId = btn.dataset.id;
+  const crossSellIds = btn.dataset.cross.split(',').map(Number);
+
+  btn.disabled = true;
+  btn.textContent = 'WIRD GESETZT…';
+
+  try {
+    const res = await fetch('/api/cross-selling/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project, productId: Number(productId), crossSellIds })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = 'GESETZT';
+      btn.classList.add('done');
+    } else {
+      btn.textContent = result.error || 'FEHLGESCHLAGEN';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = 'FEHLGESCHLAGEN';
+    btn.disabled = false;
+  }
+}
+
+refreshCrossBtn.addEventListener('click', loadCross);
+
 loadConfig();
 loadUmsatz();
 loadLager();
 loadRabatt();
+loadCross();
