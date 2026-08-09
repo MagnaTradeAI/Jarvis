@@ -219,4 +219,55 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .pb-tag { border: 1px solid var(--panel-line); padding: 3px 8px; font-size: 10px; color: var(--dim); }
 .pb-price { color: var(--cyan); font-size: 18px; font-weight: 600; }
 
+.chat-log {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--panel-line);
+  background: #0a0a0d;
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chat-empty { font-size: 12px; color: var(--dim); }
+
+.chat-msg {
+  font-size: 12px;
+  line-height: 1.6;
+  max-width: 85%;
+  padding: 8px 12px;
+  border: 1px solid var(--panel-line);
+}
+
+.chat-msg.user { align-self: flex-end; color: var(--white); border-color: var(--dim); }
+.chat-msg.assistant { align-self: flex-start; color: var(--cyan); border-color: var(--cyan); }
+
+.chat-controls { display: flex; gap: 10px; align-items: center; }
+
+.chat-controls input {
+  flex: 1;
+  background: #0a0a0d;
+  border: 1px solid var(--panel-line);
+  color: var(--white);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 10px 12px;
+}
+
+.mic-btn {
+  appearance: none;
+  border: 1px solid var(--panel-line);
+  background: transparent;
+  color: var(--dim);
+  font-size: 16px;
+  padding: 8px 12px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.mic-btn.active { border-color: var(--magenta); color: var(--magenta); box-shadow: 0 0 8px rgba(255, 42, 109, 0.35); }
+.mic-btn.on { border-color: var(--cyan); color: var(--cyan); }
+
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
