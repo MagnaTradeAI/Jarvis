@@ -124,8 +124,11 @@ app.get('/api/produktbeschreibungen/products', async (req, res) => {
 
 app.post('/api/produktbeschreibungen/generate', async (req, res) => {
   const { project, productId, einkaufspreis } = req.body || {};
-  if (!project || !productId || typeof einkaufspreis !== 'number') {
-    return res.status(400).json({ error: 'Erwartet: project, productId, einkaufspreis (Zahl)' });
+  if (!project || !productId) {
+    return res.status(400).json({ error: 'Erwartet: project, productId' });
+  }
+  if (project === 'pawvero' && typeof einkaufspreis !== 'number') {
+    return res.status(400).json({ error: 'Erwartet für Pawvero zusätzlich: einkaufspreis (Zahl)' });
   }
   try {
     const result = await produktbeschreibungen.generateContent(project, productId, einkaufspreis);
