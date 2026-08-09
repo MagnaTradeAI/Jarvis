@@ -172,4 +172,23 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .apply-btn:disabled { opacity: 0.4; cursor: default; }
 .apply-btn.done { border-color: var(--cyan); color: var(--cyan); }
 
+.cross-grid { display: grid; gap: 12px; }
+.cross-card { border: 1px solid var(--panel-line); background: #0a0a0d; padding: 16px; }
+.cross-card h3 { font-family: 'Chakra Petch', sans-serif; font-size: 13px; letter-spacing: 0.06em; margin: 0 0 10px; color: var(--white); }
+.cross-card.error { border-color: var(--magenta); }
+.cross-card.error p { font-size: 11px; color: var(--magenta); margin: 0; }
+
+.cross-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  padding: 10px 0;
+  border-top: 1px solid var(--panel-line);
+}
+.cross-item:first-of-type { border-top: none; }
+.cross-item .info { color: var(--white); }
+.cross-item .meta { display: block; color: var(--dim); margin-top: 2px; }
+
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
