@@ -4,6 +4,7 @@ const path = require('path');
 const umsatzAnalyse = require('./modules/umsatz-analyse');
 const lagerWarnung = require('./modules/lager-warnung');
 const rabattAutomatik = require('./modules/rabatt-automatik');
+const crossSelling = require('./modules/cross-selling');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -87,6 +88,28 @@ app.post('/api/rabatt/apply', async (req, res) => {
   }
 });
 
+app.get('/api/cross-selling', async (req, res) => {
+  try {
+    const results = await crossSelling.run();
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/cross-selling/apply', async (req, res) => {
+  const { project, productId, crossSellIds } = req.body || {};
+  if (!project || !productId || !Array.isArray(crossSellIds)) {
+    return res.status(400).json({ error: 'Erwartet: project, productId, crossSellIds (Array)' });
+  }
+  try {
+    const result = await crossSelling.applyCrossSell(project, productId, crossSellIds);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'online', time: new Date().toISOString() });
 });
@@ -100,5 +123,8 @@ const AUTO_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 setInterval(() => {
   rabattAutomatik.autoApplyForAutonomProjects().catch((err) => {
     console.error('Automatischer Rabatt-Check fehlgeschlagen:', err.message);
+  });
+  crossSelling.autoApplyForAutonomProjects().catch((err) => {
+    console.error('Automatischer Cross-Selling-Check fehlgeschlagen:', err.message);
   });
 }, AUTO_CHECK_INTERVAL_MS);
