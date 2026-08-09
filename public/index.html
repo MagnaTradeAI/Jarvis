@@ -93,13 +93,18 @@
 
   <section class="panel">
     <div class="panel-head">
-      <h2>PRODUKTBESCHREIBUNGEN // PAWVERO</h2>
-      <p class="hint">Einkaufspreis pro Generierung nötig (kein Speicherfeld) — schreibt Text, Tags, SEO-Felder und Preis nach WooCommerce</p>
+      <h2>PRODUKTBESCHREIBUNGEN</h2>
+      <p class="hint">Pawvero: eigene Erstellung inkl. Preisformel. Wabipaper/Luminara: nutzt deren bestehende Content-Writer-Agenten. Schreibt Text, Tags, SEO-Felder und (wo ableitbar) Preis nach WooCommerce</p>
     </div>
 
     <div class="pb-controls">
+      <select id="pb-shop">
+        <option value="pawvero">Pawvero</option>
+        <option value="wabipaper">Wabipaper</option>
+        <option value="luminara">Luminara Syndicate</option>
+      </select>
       <select id="pb-product"><option value="">Produkt wählen…</option></select>
-      <input id="pb-einkaufspreis" type="number" step="0.01" min="0" placeholder="Einkaufspreis €">
+      <input id="pb-einkaufspreis" type="number" step="0.01" min="0" placeholder="Einkaufspreis € (nur Pawvero)">
       <button class="refresh-btn" id="pb-generate" type="button">GENERIEREN</button>
     </div>
 
