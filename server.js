@@ -5,6 +5,7 @@ const umsatzAnalyse = require('./modules/umsatz-analyse');
 const lagerWarnung = require('./modules/lager-warnung');
 const rabattAutomatik = require('./modules/rabatt-automatik');
 const crossSelling = require('./modules/cross-selling');
+const produktbeschreibungen = require('./modules/produktbeschreibungen');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -104,6 +105,43 @@ app.post('/api/cross-selling/apply', async (req, res) => {
   }
   try {
     const result = await crossSelling.applyCrossSell(project, productId, crossSellIds);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/produktbeschreibungen/products', async (req, res) => {
+  const project = req.query.project;
+  if (!project) return res.status(400).json({ error: 'Erwartet: ?project=' });
+  try {
+    const result = await produktbeschreibungen.listProducts(project);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/produktbeschreibungen/generate', async (req, res) => {
+  const { project, productId, einkaufspreis } = req.body || {};
+  if (!project || !productId || typeof einkaufspreis !== 'number') {
+    return res.status(400).json({ error: 'Erwartet: project, productId, einkaufspreis (Zahl)' });
+  }
+  try {
+    const result = await produktbeschreibungen.generateContent(project, productId, einkaufspreis);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/produktbeschreibungen/apply', async (req, res) => {
+  const { project, ...payload } = req.body || {};
+  if (!project || !payload.productId) {
+    return res.status(400).json({ error: 'Erwartet: project, productId, ...' });
+  }
+  try {
+    const result = await produktbeschreibungen.applyContent(project, payload);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
