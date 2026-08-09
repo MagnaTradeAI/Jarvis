@@ -14,8 +14,13 @@ const rabattGrid = document.getElementById('rabatt-grid');
 const refreshRabattBtn = document.getElementById('refresh-rabatt');
 const crossGrid = document.getElementById('cross-grid');
 const refreshCrossBtn = document.getElementById('refresh-cross');
+const pbProduct = document.getElementById('pb-product');
+const pbPreis = document.getElementById('pb-einkaufspreis');
+const pbGenerateBtn = document.getElementById('pb-generate');
+const pbResult = document.getElementById('pb-result');
 
 let config = null;
+let pbLastDraft = null;
 
 async function loadConfig() {
   try {
@@ -307,8 +312,107 @@ async function onCrossApplyClick(e) {
 
 refreshCrossBtn.addEventListener('click', loadCross);
 
+async function loadPbProducts() {
+  try {
+    const res = await fetch('/api/produktbeschreibungen/products?project=pawvero');
+    const data = await res.json();
+    if (data.error) {
+      pbProduct.innerHTML = `<option value="">${data.error}</option>`;
+      return;
+    }
+    pbProduct.innerHTML = '<option value="">Produkt wählen…</option>' +
+      data.products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
+  } catch (err) {
+    pbProduct.innerHTML = '<option value="">Abruf fehlgeschlagen</option>';
+  }
+}
+
+pbGenerateBtn.addEventListener('click', async () => {
+  const productId = Number(pbProduct.value);
+  const einkaufspreis = Number(pbPreis.value);
+
+  if (!productId || !einkaufspreis) {
+    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen und Einkaufspreis eingeben.</p>';
+    return;
+  }
+
+  pbGenerateBtn.disabled = true;
+  pbGenerateBtn.textContent = 'GENERIERT…';
+  pbResult.innerHTML = '<p class="umsatz-empty">Recherchiert Keywords und schreibt Text…</p>';
+
+  try {
+    const res = await fetch('/api/produktbeschreibungen/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project: 'pawvero', productId, einkaufspreis })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      pbResult.innerHTML = `<p class="umsatz-empty">${data.error}</p>`;
+      pbLastDraft = null;
+      return;
+    }
+
+    pbLastDraft = { ...data, productId };
+    pbResult.innerHTML = `
+      <div class="pb-field"><span class="label">VORSCHLAGSPREIS</span><span class="pb-price">${data.vorschlagPreis.toFixed(2)} €</span></div>
+      <div class="pb-field"><span class="label">BESCHREIBUNG</span><span class="value">${data.description}</span></div>
+      <div class="pb-field"><span class="label">SCHLAGWÖRTER</span><div class="pb-tags">${(data.tags || []).map(t => `<span class="pb-tag">${t}</span>`).join('')}</div></div>
+      <div class="pb-field"><span class="label">META-TITLE</span><span class="value">${data.metaTitle || ''}</span></div>
+      <div class="pb-field"><span class="label">META-DESCRIPTION</span><span class="value">${data.metaDescription || ''}</span></div>
+      <div class="pb-field"><span class="label">FOCUS-KEYWORD</span><span class="value">${data.focusKeyword || ''}</span></div>
+      ${data.keywordHinweis ? `<div class="pb-field"><span class="label">HINWEIS</span><span class="value">${data.keywordHinweis}</span></div>` : ''}
+      <button class="apply-btn" id="pb-apply" type="button">ÜBERNEHMEN NACH WOOCOMMERCE</button>
+    `;
+
+    document.getElementById('pb-apply').addEventListener('click', onPbApply);
+  } catch (err) {
+    pbResult.innerHTML = '<p class="umsatz-empty">Generierung fehlgeschlagen.</p>';
+  } finally {
+    pbGenerateBtn.disabled = false;
+    pbGenerateBtn.textContent = 'GENERIEREN';
+  }
+});
+
+async function onPbApply(e) {
+  if (!pbLastDraft) return;
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'WIRD ÜBERNOMMEN…';
+
+  try {
+    const res = await fetch('/api/produktbeschreibungen/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: 'pawvero',
+        productId: pbLastDraft.productId,
+        description: pbLastDraft.description,
+        tags: pbLastDraft.tags,
+        metaTitle: pbLastDraft.metaTitle,
+        metaDescription: pbLastDraft.metaDescription,
+        focusKeyword: pbLastDraft.focusKeyword,
+        price: pbLastDraft.vorschlagPreis
+      })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = 'ÜBERNOMMEN';
+      btn.classList.add('done');
+    } else {
+      btn.textContent = result.error || 'FEHLGESCHLAGEN';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = 'FEHLGESCHLAGEN';
+    btn.disabled = false;
+  }
+}
+
 loadConfig();
 loadUmsatz();
 loadLager();
 loadRabatt();
 loadCross();
+loadPbProducts();
