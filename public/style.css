@@ -271,3 +271,92 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .mic-btn.on { border-color: var(--cyan); color: var(--cyan); }
 
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
+
+/* ── MOBILE (≤ 640px) ── */
+@media (max-width: 640px) {
+  .header {
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    gap: 10px;
+  }
+
+  .header h1 { font-size: 17px; }
+  .subtitle { font-size: 9px; }
+  .status { margin-left: auto; }
+
+  main {
+    padding: 14px;
+  }
+
+  main .panel + .panel {
+    margin-top: 16px;
+  }
+
+  .panel { padding: 14px; }
+
+  .panel-head h2 { font-size: 13px; }
+  .hint { font-size: 10px; margin-bottom: 14px; }
+
+  button.toggle {
+    padding: 12px 8px;
+    font-size: 9px;
+    min-height: 40px;
+  }
+
+  th, td { padding: 8px 10px; }
+
+  .umsatz-grid,
+  .lager-grid,
+  .rabatt-grid,
+  .cross-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pb-controls {
+    flex-direction: column;
+  }
+  .pb-controls select,
+  .pb-controls input,
+  .pb-controls button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .rabatt-item,
+  .cross-item,
+  .lager-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .rabatt-item .apply-btn,
+  .cross-item .apply-btn {
+    width: 100%;
+  }
+
+  .chat-controls {
+    flex-wrap: wrap;
+  }
+  .chat-controls input {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .mic-btn,
+  #chat-send {
+    flex: 1;
+    min-height: 44px;
+    font-size: 14px;
+  }
+
+  .chat-log {
+    max-height: 260px;
+  }
+  .chat-msg {
+    max-width: 92%;
+  }
+
+  .refresh-btn {
+    width: 100%;
+    min-height: 44px;
+  }
+}
