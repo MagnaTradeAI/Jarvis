@@ -191,4 +191,32 @@ button.toggle[data-level="autonom"] { border-color: var(--magenta); color: var(-
 .cross-item .info { color: var(--white); }
 .cross-item .meta { display: block; color: var(--dim); margin-top: 2px; }
 
+.pb-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.pb-controls select,
+.pb-controls input {
+  background: #0a0a0d;
+  border: 1px solid var(--panel-line);
+  color: var(--white);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.pb-controls select { flex: 2; min-width: 200px; }
+.pb-controls input { flex: 1; min-width: 140px; }
+
+.pb-result { font-size: 12px; }
+.pb-field { margin-bottom: 12px; }
+.pb-field .label { display: block; color: var(--cyan); font-size: 10px; letter-spacing: 0.08em; margin-bottom: 4px; }
+.pb-field .value { color: var(--white); white-space: pre-wrap; line-height: 1.5; }
+.pb-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.pb-tag { border: 1px solid var(--panel-line); padding: 3px 8px; font-size: 10px; color: var(--dim); }
+.pb-price { color: var(--cyan); font-size: 18px; font-weight: 600; }
+
 footer { text-align: center; padding: 24px; font-size: 10px; letter-spacing: 0.1em; color: var(--dim-2); }
