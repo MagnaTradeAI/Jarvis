@@ -6,6 +6,7 @@ const lagerWarnung = require('./lager-warnung');
 const rabattAutomatik = require('./rabatt-automatik');
 const crossSelling = require('./cross-selling');
 const produktbeschreibungen = require('./produktbeschreibungen');
+const lifestyleBilder = require('./lifestyle-bilder');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const VALID_LEVELS = ['off', 'beobachten', 'freigabe', 'autonom'];
@@ -116,6 +117,40 @@ const TOOLS = [
       },
       required: ['project', 'productId', 'description']
     }
+  },
+  {
+    name: 'list_lifestyle_produkte',
+    description: 'Listet Produkte eines Shops (für Lifestyle-Bilder). Nur Pawvero und Wabipaper unterstützt.',
+    input_schema: {
+      type: 'object',
+      properties: { project: { type: 'string', enum: ['pawvero', 'wabipaper'] } },
+      required: ['project']
+    }
+  },
+  {
+    name: 'generate_lifestyle_bilder',
+    description: 'Generiert 2 Lifestyle-Produktbilder (Bild-zu-Bild) aus dem vorhandenen Produktbild via Replicate.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        project: { type: 'string', enum: ['pawvero', 'wabipaper'] },
+        productId: { type: 'number' }
+      },
+      required: ['project', 'productId']
+    }
+  },
+  {
+    name: 'apply_lifestyle_bilder',
+    description: 'Übernimmt generierte Lifestyle-Bilder in die WooCommerce-Produktgalerie. Braucht Freigabe oder Autonom-Stufe. Nutze exakt die bilder-URLs aus dem letzten generate_lifestyle_bilder-Ergebnis.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        project: { type: 'string', enum: ['pawvero', 'wabipaper'] },
+        productId: { type: 'number' },
+        imageUrls: { type: 'array', items: { type: 'string' } }
+      },
+      required: ['project', 'productId', 'imageUrls']
+    }
   }
 ];
 
@@ -159,6 +194,15 @@ async function executeTool(name, input) {
       const { project, ...payload } = input;
       return produktbeschreibungen.applyContent(project, payload);
     }
+
+    case 'list_lifestyle_produkte':
+      return lifestyleBilder.listProducts(input.project);
+
+    case 'generate_lifestyle_bilder':
+      return lifestyleBilder.generateImages(input.project, input.productId);
+
+    case 'apply_lifestyle_bilder':
+      return lifestyleBilder.applyImages(input.project, input.productId, input.imageUrls);
 
     default:
       return { error: `Unbekanntes Tool: ${name}` };
