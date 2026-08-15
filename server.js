@@ -6,6 +6,7 @@ const lagerWarnung = require('./modules/lager-warnung');
 const rabattAutomatik = require('./modules/rabatt-automatik');
 const crossSelling = require('./modules/cross-selling');
 const produktbeschreibungen = require('./modules/produktbeschreibungen');
+const lifestyleBilder = require('./modules/lifestyle-bilder');
 const jarvisChat = require('./modules/jarvis-chat');
 
 const app = express();
@@ -146,6 +147,43 @@ app.post('/api/produktbeschreibungen/apply', async (req, res) => {
   }
   try {
     const result = await produktbeschreibungen.applyContent(project, payload);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/lifestyle-bilder/products', async (req, res) => {
+  const project = req.query.project;
+  if (!project) return res.status(400).json({ error: 'Erwartet: ?project=' });
+  try {
+    const result = await lifestyleBilder.listProducts(project);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/lifestyle-bilder/generate', async (req, res) => {
+  const { project, productId } = req.body || {};
+  if (!project || !productId) {
+    return res.status(400).json({ error: 'Erwartet: project, productId' });
+  }
+  try {
+    const result = await lifestyleBilder.generateImages(project, productId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/lifestyle-bilder/apply', async (req, res) => {
+  const { project, productId, imageUrls } = req.body || {};
+  if (!project || !productId || !Array.isArray(imageUrls)) {
+    return res.status(400).json({ error: 'Erwartet: project, productId, imageUrls (Array)' });
+  }
+  try {
+    const result = await lifestyleBilder.applyImages(project, productId, imageUrls);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
