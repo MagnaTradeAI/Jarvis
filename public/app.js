@@ -1,34 +1,17 @@
 const LEVELS = ['off', 'beobachten', 'freigabe', 'autonom'];
-const LEVEL_LABEL = { off: 'AUS', beobachten: 'BEOBACHTEN', freigabe: 'FREIGABE', autonom: 'AUTONOM' };
-const PROJECT_LABEL = { pawvero: 'Pawvero', wabipaper: 'Wabipaper', luminara: 'Luminara Syndicate', magnatrade: 'MagnaTrade-AI' };
+const LEVEL_LABEL = {
+  off: 'AUS',
+  beobachten: 'BEOBACHTEN',
+  freigabe: 'FREIGABE',
+  autonom: 'AUTONOM'
+};
 
 const statusEl = document.getElementById('status');
 const statusLabel = document.getElementById('status-label');
 const headRow = document.getElementById('matrix-head');
 const body = document.getElementById('matrix-body');
-const umsatzGrid = document.getElementById('umsatz-grid');
-const refreshBtn = document.getElementById('refresh-umsatz');
-const lagerGrid = document.getElementById('lager-grid');
-const refreshLagerBtn = document.getElementById('refresh-lager');
-const rabattGrid = document.getElementById('rabatt-grid');
-const refreshRabattBtn = document.getElementById('refresh-rabatt');
-const crossGrid = document.getElementById('cross-grid');
-const refreshCrossBtn = document.getElementById('refresh-cross');
-const pbShop = document.getElementById('pb-shop');
-const pbProduct = document.getElementById('pb-product');
-const pbPreis = document.getElementById('pb-einkaufspreis');
-const pbGenerateBtn = document.getElementById('pb-generate');
-const pbResult = document.getElementById('pb-result');
-const chatLog = document.getElementById('chat-log');
-const chatInput = document.getElementById('chat-input');
-const chatSendBtn = document.getElementById('chat-send');
-const micBtn = document.getElementById('mic-btn');
-const ttsToggle = document.getElementById('tts-toggle');
 
 let config = null;
-let pbLastDraft = null;
-let chatHistory = [];
-let ttsEnabled = true;
 
 async function loadConfig() {
   try {
@@ -94,6 +77,17 @@ async function onToggleClick(e) {
   }
 }
 
+const PROJECT_LABEL = {
+  pawvero: 'Pawvero',
+  wabipaper: 'Wabipaper',
+  luminara: 'Luminara Syndicate',
+  magnatrade: 'MagnaTrade-AI'
+};
+
+const umsatzGrid = document.getElementById('umsatz-grid');
+const refreshBtn = document.getElementById('refresh-umsatz');
+refreshBtn.addEventListener('click', loadUmsatz);
+
 async function loadUmsatz() {
   umsatzGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
   try {
@@ -126,7 +120,8 @@ function renderUmsatz(results) {
   }).join('');
 }
 
-refreshBtn.addEventListener('click', loadUmsatz);
+const lagerGrid = document.getElementById('lager-grid');
+const refreshLagerBtn = document.getElementById('refresh-lager');
 
 async function loadLager() {
   lagerGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
@@ -165,6 +160,9 @@ function renderLager(results) {
 }
 
 refreshLagerBtn.addEventListener('click', loadLager);
+
+const rabattGrid = document.getElementById('rabatt-grid');
+const refreshRabattBtn = document.getElementById('refresh-rabatt');
 
 async function loadRabatt() {
   rabattGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
@@ -243,6 +241,9 @@ async function onApplyClick(e) {
 
 refreshRabattBtn.addEventListener('click', loadRabatt);
 
+const crossGrid = document.getElementById('cross-grid');
+const refreshCrossBtn = document.getElementById('refresh-cross');
+
 async function loadCross() {
   crossGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
   try {
@@ -319,6 +320,14 @@ async function onCrossApplyClick(e) {
 }
 
 refreshCrossBtn.addEventListener('click', loadCross);
+
+const pbShop = document.getElementById('pb-shop');
+const pbProduct = document.getElementById('pb-product');
+const pbPreis = document.getElementById('pb-einkaufspreis');
+const pbGenerateBtn = document.getElementById('pb-generate');
+const pbResult = document.getElementById('pb-result');
+
+let pbLastDraft = null;
 
 async function loadPbProducts() {
   const project = pbShop.value;
@@ -432,6 +441,15 @@ async function onPbApply(e) {
     btn.disabled = false;
   }
 }
+
+const chatLog = document.getElementById('chat-log');
+const chatInput = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send');
+const micBtn = document.getElementById('mic-btn');
+const ttsToggle = document.getElementById('tts-toggle');
+
+let chatHistory = [];
+let ttsEnabled = true;
 
 function renderChat() {
   if (!chatHistory.length) {
@@ -547,6 +565,109 @@ if (SpeechRecognitionImpl) {
   micBtn.title = 'Spracheingabe nicht unterstützt (Chrome/Edge nötig)';
 }
 
+const lbShop = document.getElementById('lb-shop');
+const lbProduct = document.getElementById('lb-product');
+const lbGenerateBtn = document.getElementById('lb-generate');
+const lbResult = document.getElementById('lb-result');
+
+let lbLastDraft = null;
+
+async function loadLbProducts() {
+  const project = lbShop.value;
+  lbProduct.innerHTML = '<option value="">Lädt…</option>';
+  try {
+    const res = await fetch(`/api/lifestyle-bilder/products?project=${project}`);
+    const data = await res.json();
+    if (data.error) {
+      lbProduct.innerHTML = `<option value="">${data.error}</option>`;
+      return;
+    }
+    lbProduct.innerHTML = '<option value="">Produkt wählen…</option>' +
+      data.products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
+  } catch (err) {
+    lbProduct.innerHTML = '<option value="">Abruf fehlgeschlagen</option>';
+  }
+}
+
+lbShop.addEventListener('change', () => {
+  lbResult.innerHTML = '';
+  lbLastDraft = null;
+  loadLbProducts();
+});
+
+lbGenerateBtn.addEventListener('click', async () => {
+  const project = lbShop.value;
+  const productId = Number(lbProduct.value);
+
+  if (!productId) {
+    lbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen.</p>';
+    return;
+  }
+
+  lbGenerateBtn.disabled = true;
+  lbGenerateBtn.textContent = 'GENERIERT…';
+  lbResult.innerHTML = '<p class="umsatz-empty">Erstellt Lifestyle-Bilder…</p>';
+
+  try {
+    const res = await fetch('/api/lifestyle-bilder/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project, productId })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      lbResult.innerHTML = `<p class="umsatz-empty">${data.error}</p>`;
+      lbLastDraft = null;
+      return;
+    }
+
+    lbLastDraft = { ...data, productId };
+    lbResult.innerHTML = `
+      <div class="lb-quelle">Quellbild:<br><img src="${data.quellbild}" alt="Quellbild"></div>
+      <div class="lb-images">${data.bilder.map(url => `<div class="lb-image-card"><img src="${url}" alt="Lifestyle-Variante"></div>`).join('')}</div>
+      <button class="apply-btn" id="lb-apply" type="button">ÜBERNEHMEN IN GALERIE</button>
+    `;
+
+    document.getElementById('lb-apply').addEventListener('click', onLbApply);
+  } catch (err) {
+    lbResult.innerHTML = '<p class="umsatz-empty">Generierung fehlgeschlagen.</p>';
+  } finally {
+    lbGenerateBtn.disabled = false;
+    lbGenerateBtn.textContent = 'GENERIEREN';
+  }
+});
+
+async function onLbApply(e) {
+  if (!lbLastDraft) return;
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'WIRD ÜBERNOMMEN…';
+
+  try {
+    const res = await fetch('/api/lifestyle-bilder/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: lbShop.value,
+        productId: lbLastDraft.productId,
+        imageUrls: lbLastDraft.bilder
+      })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = `ÜBERNOMMEN (${result.hinzugefuegt})`;
+      btn.classList.add('done');
+    } else {
+      btn.textContent = result.error || 'FEHLGESCHLAGEN';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = 'FEHLGESCHLAGEN';
+    btn.disabled = false;
+  }
+}
+
 renderChat();
 
 loadConfig();
@@ -555,3 +676,4 @@ loadLager();
 loadRabatt();
 loadCross();
 loadPbProducts();
+loadLbProducts();
