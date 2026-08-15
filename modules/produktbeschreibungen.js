@@ -111,7 +111,7 @@ async function listProducts(project) {
   let page = 1;
   let all = [];
   while (page <= 10) {
-    const res = await fetch(`${auth.base}/wp-json/wc/v3/products?per_page=100&page=${page}&status=publish`, { headers: auth.headers });
+    const res = await fetch(`${auth.base}/wp-json/wc/v3/products?per_page=100&page=${page}&status=draft`, { headers: auth.headers });
     if (!res.ok) return { project, error: `WooCommerce API Fehler (${res.status})` };
     const products = await res.json();
     all = all.concat(products);
