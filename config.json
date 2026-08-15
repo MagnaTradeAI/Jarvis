@@ -37,6 +37,10 @@
     {
       "id": "lager-warnung",
       "label": "Lagerbestand-Warnung"
+    },
+    {
+      "id": "lifestyle-bilder",
+      "label": "Lifestyle-Bilder"
     }
   ],
   "matrix": {
@@ -45,28 +49,32 @@
       "rabatt-automatik": "off",
       "produktbeschreibungen": "off",
       "cross-selling": "off",
-      "lager-warnung": "off"
+      "lager-warnung": "off",
+      "lifestyle-bilder": "off"
     },
     "wabipaper": {
       "umsatz-analyse": "off",
       "rabatt-automatik": "off",
       "produktbeschreibungen": "off",
       "cross-selling": "off",
-      "lager-warnung": "off"
+      "lager-warnung": "off",
+      "lifestyle-bilder": "off"
     },
     "luminara": {
       "umsatz-analyse": "off",
       "rabatt-automatik": "off",
       "produktbeschreibungen": "off",
       "cross-selling": "off",
-      "lager-warnung": "off"
+      "lager-warnung": "off",
+      "lifestyle-bilder": "off"
     },
     "magnatrade": {
       "umsatz-analyse": "off",
       "rabatt-automatik": "off",
       "produktbeschreibungen": "off",
       "cross-selling": "off",
-      "lager-warnung": "off"
+      "lager-warnung": "off",
+      "lifestyle-bilder": "off"
     }
   }
 }
