@@ -1,17 +1,25 @@
 const LEVELS = ['off', 'beobachten', 'freigabe', 'autonom'];
-const LEVEL_LABEL = {
-  off: 'AUS',
-  beobachten: 'BEOBACHTEN',
-  freigabe: 'FREIGABE',
-  autonom: 'AUTONOM'
-};
+const LEVEL_LABEL = { off: 'AUS', beobachten: 'BEOB', freigabe: 'FREI', autonom: 'AUTO' };
+const SEG_CLASS = ['', 'on-watch', 'on-approve', 'on-auto'];
+const PROJECT_LABEL = { pawvero: 'Pawvero', wabipaper: 'Wabipaper', luminara: 'Luminara Syndicate', magnatrade: 'MagnaTrade-AI' };
+const PROJECT_COLOR = { pawvero: 'var(--pawvero)', wabipaper: 'var(--wabipaper)', luminara: 'var(--luminara)', magnatrade: 'var(--magnatrade)' };
+
+function bdot(project) {
+  return `<span class="bdot" style="background:${PROJECT_COLOR[project] || 'var(--text-dim)'}"></span>`;
+}
 
 const statusEl = document.getElementById('status');
 const statusLabel = document.getElementById('status-label');
+const heroUmsatz = document.getElementById('hero-umsatz');
+const tickerTrack = document.getElementById('ticker-track');
 const headRow = document.getElementById('matrix-head');
 const body = document.getElementById('matrix-body');
 
 let config = null;
+let lastUmsatz = [];
+let lastLager = [];
+let lastRabatt = [];
+let lastCross = [];
 
 async function loadConfig() {
   try {
@@ -20,6 +28,7 @@ async function loadConfig() {
     config = await res.json();
     setStatus('online', 'ONLINE');
     render();
+    updateTicker();
   } catch (err) {
     setStatus('error', 'VERBINDUNG FEHLGESCHLAGEN');
   }
@@ -30,23 +39,28 @@ function setStatus(state, label) {
   statusLabel.textContent = label;
 }
 
+function faderSegs(level) {
+  const idx = LEVELS.indexOf(level);
+  return [0, 1, 2, 3].map(i => `<div class="seg ${i === idx ? SEG_CLASS[i] : ''}"></div>`).join('');
+}
+
 function render() {
-  headRow.innerHTML = '<th></th>' + config.projects.map(p => `<th>${p.label}</th>`).join('');
+  headRow.innerHTML = '<th></th>' + config.projects.map(p => `<th>${bdot(p.id)}${p.label}</th>`).join('');
 
   body.innerHTML = config.functions.map(fn => {
     const cells = config.projects.map(p => {
       const level = config.matrix[p.id][fn.id];
-      return `<td class="cell">
-        <button class="toggle" type="button"
-          data-project="${p.id}" data-function="${fn.id}" data-level="${level}">
-          ${LEVEL_LABEL[level]}
+      return `<td>
+        <button class="fader-btn" type="button" data-project="${p.id}" data-function="${fn.id}" data-level="${level}">
+          <div class="fader">${faderSegs(level)}</div>
+          <span class="fader-label">${LEVEL_LABEL[level]}</span>
         </button>
       </td>`;
     }).join('');
     return `<tr><th>${fn.label}</th>${cells}</tr>`;
   }).join('');
 
-  body.querySelectorAll('button.toggle').forEach(btn => {
+  body.querySelectorAll('.fader-btn').forEach(btn => {
     btn.addEventListener('click', onToggleClick);
   });
 }
@@ -59,7 +73,8 @@ async function onToggleClick(e) {
   const next = LEVELS[(LEVELS.indexOf(current) + 1) % LEVELS.length];
 
   btn.dataset.level = next;
-  btn.textContent = LEVEL_LABEL[next];
+  btn.querySelector('.fader').innerHTML = faderSegs(next);
+  btn.querySelector('.fader-label').textContent = LEVEL_LABEL[next];
 
   try {
     const res = await fetch('/api/config', {
@@ -69,49 +84,120 @@ async function onToggleClick(e) {
     });
     if (!res.ok) throw new Error('Speichern fehlgeschlagen');
     config.matrix[project][fn] = next;
+    updateTicker();
   } catch (err) {
     btn.dataset.level = current;
-    btn.textContent = LEVEL_LABEL[current];
+    btn.querySelector('.fader').innerHTML = faderSegs(current);
+    btn.querySelector('.fader-label').textContent = LEVEL_LABEL[current];
     setStatus('error', 'SPEICHERN FEHLGESCHLAGEN');
     setTimeout(() => setStatus('online', 'ONLINE'), 3000);
   }
 }
 
-const PROJECT_LABEL = {
-  pawvero: 'Pawvero',
-  wabipaper: 'Wabipaper',
-  luminara: 'Luminara Syndicate',
-  magnatrade: 'MagnaTrade-AI'
-};
+// ── HERO-KENNZAHL + TICKER ──────────────────────────────────────────────
+function updateHeroStat() {
+  const valid = lastUmsatz.filter(r => !r.error);
+  if (!valid.length) { heroUmsatz.textContent = '–'; return; }
+  const sum = valid.reduce((s, r) => s + r.umsatz, 0);
+  heroUmsatz.textContent = `${sum.toFixed(2)} €`;
+}
 
+function updateTicker() {
+  const items = [];
+
+  lastUmsatz.filter(r => !r.error).forEach(r => {
+    items.push(`<span class="ticker-item">${bdot(r.project)}<b>${(PROJECT_LABEL[r.project] || r.project).toUpperCase()}</b> ${r.umsatz.toFixed(2)} € / ${r.bestellungen} Bestellungen</span>`);
+  });
+
+  lastLager.filter(r => !r.error && r.warnungen.length).forEach(r => {
+    items.push(`<span class="ticker-item warn">${bdot(r.project)}<b>${(PROJECT_LABEL[r.project] || r.project).toUpperCase()}</b> ${r.warnungen.length} Produkte kritisch niedrig</span>`);
+  });
+
+  lastRabatt.filter(r => !r.error && r.kandidaten.length).forEach(r => {
+    items.push(`<span class="ticker-item">${bdot(r.project)}<b>${(PROJECT_LABEL[r.project] || r.project).toUpperCase()}</b> ${r.kandidaten.length} Rabatt-Kandidaten bereit</span>`);
+  });
+
+  lastCross.filter(r => !r.error && r.vorschlaege.length).forEach(r => {
+    items.push(`<span class="ticker-item">${bdot(r.project)}<b>${(PROJECT_LABEL[r.project] || r.project).toUpperCase()}</b> ${r.vorschlaege.length} Cross-Selling-Vorschläge</span>`);
+  });
+
+  if (config) {
+    let autonomCount = 0;
+    config.projects.forEach(p => {
+      config.functions.forEach(fn => {
+        if (config.matrix[p.id][fn.id] === 'autonom') autonomCount++;
+      });
+    });
+    items.push(`<span class="ticker-item">◇ AUTONOM-MODUS <b>${autonomCount} aktiv</b></span>`);
+  }
+
+  if (!items.length) {
+    tickerTrack.innerHTML = '<span class="ticker-item">System bereit — noch keine Daten geladen</span>';
+    return;
+  }
+
+  tickerTrack.innerHTML = items.concat(items).join('');
+}
+
+// ── AKTIVITÄTSPROTOKOLL ─────────────────────────────────────────────────
+const activityList = document.getElementById('activity-list');
+
+async function loadActivity() {
+  try {
+    const res = await fetch('/api/activity');
+    const data = await res.json();
+    renderActivity(data.entries || []);
+  } catch (err) {
+    activityList.innerHTML = '<p class="activity-empty">Abruf fehlgeschlagen.</p>';
+  }
+}
+
+function renderActivity(entries) {
+  if (!entries.length) {
+    activityList.innerHTML = '<p class="activity-empty">Noch keine automatisierten Aktionen protokolliert.</p>';
+    return;
+  }
+  activityList.innerHTML = entries.map(e => {
+    const time = new Date(e.zeit).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const tag = e.level === 'autonom' ? '<span class="auto-tag">AUTONOM</span>' : '<span class="freigabe-tag">FREIGABE</span>';
+    return `<div class="activity-row">
+      <span class="time">${time}</span>
+      ${bdot(e.project)}
+      <span class="what">${e.nachricht}</span>
+      ${tag}
+    </div>`;
+  }).join('');
+}
+
+// ── UMSATZ ───────────────────────────────────────────────────────────────
 const umsatzGrid = document.getElementById('umsatz-grid');
 const refreshBtn = document.getElementById('refresh-umsatz');
 refreshBtn.addEventListener('click', loadUmsatz);
 
 async function loadUmsatz() {
-  umsatzGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  umsatzGrid.innerHTML = '<p class="empty-msg">LÄDT…</p>';
   try {
     const res = await fetch('/api/umsatz');
     const data = await res.json();
-    renderUmsatz(data.results || []);
+    lastUmsatz = data.results || [];
+    renderUmsatz(lastUmsatz);
+    updateHeroStat();
+    updateTicker();
   } catch (err) {
-    umsatzGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+    umsatzGrid.innerHTML = '<p class="empty-msg">Abruf fehlgeschlagen.</p>';
   }
 }
 
 function renderUmsatz(results) {
   if (!results.length) {
-    umsatzGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Umsatz-Analyse in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    umsatzGrid.innerHTML = '<p class="empty-msg">Keine Projekte aktiv — Umsatz-Analyse in der Steuerkonsole oben auf BEOBACHTEN oder höher schalten.</p>';
     return;
   }
-
   umsatzGrid.innerHTML = results.map(r => {
     const label = PROJECT_LABEL[r.project] || r.project;
-    if (r.error) {
-      return `<div class="umsatz-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
-    }
-    return `<div class="umsatz-card">
-      <h3>${label}</h3>
+    if (r.error) return `<div class="mcard error"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p>${r.error}</p></div>`;
+    return `<div class="mcard">
+      <div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div>
       <div class="figure">${r.umsatz.toFixed(2)} €</div>
       <div class="row"><span>Bestellungen</span><span>${r.bestellungen}</span></div>
       <div class="row"><span>Ø Bestellwert</span><span>${r.durchschnittsbestellwert.toFixed(2)} €</span></div>
@@ -120,80 +206,80 @@ function renderUmsatz(results) {
   }).join('');
 }
 
+// ── LAGERBESTAND ─────────────────────────────────────────────────────────
 const lagerGrid = document.getElementById('lager-grid');
 const refreshLagerBtn = document.getElementById('refresh-lager');
+refreshLagerBtn.addEventListener('click', loadLager);
 
 async function loadLager() {
-  lagerGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  lagerGrid.innerHTML = '<p class="empty-msg">LÄDT…</p>';
   try {
     const res = await fetch('/api/lager');
     const data = await res.json();
-    renderLager(data.results || []);
+    lastLager = data.results || [];
+    renderLager(lastLager);
+    updateTicker();
   } catch (err) {
-    lagerGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+    lagerGrid.innerHTML = '<p class="empty-msg">Abruf fehlgeschlagen.</p>';
   }
 }
 
 function renderLager(results) {
   if (!results.length) {
-    lagerGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Lagerbestand-Warnung in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    lagerGrid.innerHTML = '<p class="empty-msg">Keine Projekte aktiv — Lagerbestand-Warnung in der Steuerkonsole oben auf BEOBACHTEN oder höher schalten.</p>';
     return;
   }
-
   lagerGrid.innerHTML = results.map(r => {
     const label = PROJECT_LABEL[r.project] || r.project;
-    if (r.error) {
-      return `<div class="lager-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
-    }
+    if (r.error) return `<div class="mcard error"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p>${r.error}</p></div>`;
     if (!r.warnungen.length) {
-      return `<div class="lager-card"><h3>${label}</h3><p class="lager-ok">Alles im grünen Bereich (${r.geprueft} Produkte geprüft)</p></div>`;
+      return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p class="ok-msg">Alles im grünen Bereich (${r.geprueft} Produkte geprüft)</p></div>`;
     }
     const items = r.warnungen.map(w => {
       const out = w.status === 'outofstock';
-      return `<div class="lager-item">
+      return `<div class="list-item">
         <span class="name">${w.name}${w.sku !== '–' ? ' (' + w.sku + ')' : ''}</span>
         <span class="qty${out ? ' out' : ''}">${out ? 'AUSVERKAUFT' : w.bestand + ' Stk.'}</span>
       </div>`;
     }).join('');
-    return `<div class="lager-card"><h3>${label}</h3>${items}</div>`;
+    return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div>${items}</div>`;
   }).join('');
 }
 
-refreshLagerBtn.addEventListener('click', loadLager);
-
+// ── RABATT-AUTOMATIK ─────────────────────────────────────────────────────
 const rabattGrid = document.getElementById('rabatt-grid');
 const refreshRabattBtn = document.getElementById('refresh-rabatt');
+refreshRabattBtn.addEventListener('click', loadRabatt);
 
 async function loadRabatt() {
-  rabattGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  rabattGrid.innerHTML = '<p class="empty-msg">LÄDT…</p>';
   try {
     const res = await fetch('/api/rabatt');
     const data = await res.json();
-    renderRabatt(data.results || []);
+    lastRabatt = data.results || [];
+    renderRabatt(lastRabatt);
+    updateTicker();
   } catch (err) {
-    rabattGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+    rabattGrid.innerHTML = '<p class="empty-msg">Abruf fehlgeschlagen.</p>';
   }
 }
 
 function renderRabatt(results) {
   if (!results.length) {
-    rabattGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Rabatt-Automatik in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    rabattGrid.innerHTML = '<p class="empty-msg">Keine Projekte aktiv — Rabatt-Automatik in der Steuerkonsole oben auf BEOBACHTEN oder höher schalten.</p>';
     return;
   }
-
   rabattGrid.innerHTML = results.map(r => {
     const label = PROJECT_LABEL[r.project] || r.project;
-    if (r.error) {
-      return `<div class="rabatt-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
-    }
+    if (r.error) return `<div class="mcard error"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p>${r.error}</p></div>`;
     if (!r.kandidaten.length) {
-      return `<div class="rabatt-card"><h3>${label}</h3><p class="lager-ok">Keine Lagerhüter gefunden (${r.geprueft} Produkte geprüft)</p></div>`;
+      return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p class="ok-msg">Keine Lagerhüter gefunden (${r.geprueft} Produkte geprüft)</p></div>`;
     }
     const items = r.kandidaten.map(k => {
       const status = k.bereitsImSale ? 'IM SALE' : `${k.vorschlagProzent}% VORSCHLAG`;
       const disabled = k.bereitsImSale ? 'disabled' : '';
-      return `<div class="rabatt-item">
-        <span class="info">${k.name}
+      return `<div class="list-item">
+        <span class="name">${k.name}
           <span class="meta">Bestand ${k.bestand} · ${k.verkauftLetzte60Tage} verkauft (60T) · ${k.regulaerpreis.toFixed(2)} €</span>
         </span>
         <button class="apply-btn${k.bereitsImSale ? ' done' : ''}" ${disabled}
@@ -202,7 +288,7 @@ function renderRabatt(results) {
         </button>
       </div>`;
     }).join('');
-    return `<div class="rabatt-card"><h3>${label}</h3>${items}</div>`;
+    return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div>${items}</div>`;
   }).join('');
 
   rabattGrid.querySelectorAll('.apply-btn:not([disabled])').forEach(btn => {
@@ -229,6 +315,7 @@ async function onApplyClick(e) {
     if (result.ok) {
       btn.textContent = `IM SALE BIS ${result.gueltigBis}${result.couponCode ? ' · ' + result.couponCode : ''}`;
       btn.classList.add('done');
+      loadActivity();
     } else {
       btn.textContent = result.error || 'FEHLGESCHLAGEN';
       btn.disabled = false;
@@ -239,41 +326,40 @@ async function onApplyClick(e) {
   }
 }
 
-refreshRabattBtn.addEventListener('click', loadRabatt);
-
+// ── CROSS-SELLING ────────────────────────────────────────────────────────
 const crossGrid = document.getElementById('cross-grid');
 const refreshCrossBtn = document.getElementById('refresh-cross');
+refreshCrossBtn.addEventListener('click', loadCross);
 
 async function loadCross() {
-  crossGrid.innerHTML = '<p class="umsatz-empty">LÄDT…</p>';
+  crossGrid.innerHTML = '<p class="empty-msg">LÄDT…</p>';
   try {
     const res = await fetch('/api/cross-selling');
     const data = await res.json();
-    renderCross(data.results || []);
+    lastCross = data.results || [];
+    renderCross(lastCross);
+    updateTicker();
   } catch (err) {
-    crossGrid.innerHTML = '<p class="umsatz-empty">Abruf fehlgeschlagen.</p>';
+    crossGrid.innerHTML = '<p class="empty-msg">Abruf fehlgeschlagen.</p>';
   }
 }
 
 function renderCross(results) {
   if (!results.length) {
-    crossGrid.innerHTML = '<p class="umsatz-empty">Keine Projekte aktiv — Cross-Selling-Vorschläge in der Matrix oben auf BEOBACHTEN oder höher schalten.</p>';
+    crossGrid.innerHTML = '<p class="empty-msg">Keine Projekte aktiv — Cross-Selling-Vorschläge in der Steuerkonsole oben auf BEOBACHTEN oder höher schalten.</p>';
     return;
   }
-
   crossGrid.innerHTML = results.map(r => {
     const label = PROJECT_LABEL[r.project] || r.project;
-    if (r.error) {
-      return `<div class="cross-card error"><h3>${label}</h3><p>${r.error}</p></div>`;
-    }
+    if (r.error) return `<div class="mcard error"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p>${r.error}</p></div>`;
     if (!r.vorschlaege.length) {
-      return `<div class="cross-card"><h3>${label}</h3><p class="lager-ok">Noch keine Muster erkennbar (${r.ausgewerteteBestellungen} Bestellungen ausgewertet)</p></div>`;
+      return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div><p class="ok-msg">Noch keine Muster erkennbar (${r.ausgewerteteBestellungen} Bestellungen ausgewertet)</p></div>`;
     }
     const items = r.vorschlaege.map(v => {
       const partnerNames = v.partner.map(p => `${p.name} (${p.count}×)`).join(', ');
       const crossSellIds = v.partner.map(p => p.id).join(',');
-      return `<div class="cross-item">
-        <span class="info">${v.productName}
+      return `<div class="list-item">
+        <span class="name">${v.productName}
           <span class="meta">Häufig zusammen mit: ${partnerNames}</span>
         </span>
         <button class="apply-btn" type="button"
@@ -282,7 +368,7 @@ function renderCross(results) {
         </button>
       </div>`;
     }).join('');
-    return `<div class="cross-card"><h3>${label}</h3>${items}</div>`;
+    return `<div class="mcard"><div class="mhead"><h3>${label}</h3>${bdot(r.project)}</div>${items}</div>`;
   }).join('');
 
   crossGrid.querySelectorAll('.apply-btn').forEach(btn => {
@@ -309,6 +395,7 @@ async function onCrossApplyClick(e) {
     if (result.ok) {
       btn.textContent = 'GESETZT';
       btn.classList.add('done');
+      loadActivity();
     } else {
       btn.textContent = result.error || 'FEHLGESCHLAGEN';
       btn.disabled = false;
@@ -319,8 +406,7 @@ async function onCrossApplyClick(e) {
   }
 }
 
-refreshCrossBtn.addEventListener('click', loadCross);
-
+// ── PRODUKTBESCHREIBUNGEN ────────────────────────────────────────────────
 const pbShop = document.getElementById('pb-shop');
 const pbProduct = document.getElementById('pb-product');
 const pbPreis = document.getElementById('pb-einkaufspreis');
@@ -360,17 +446,17 @@ pbGenerateBtn.addEventListener('click', async () => {
   const einkaufspreis = Number(pbPreis.value);
 
   if (!productId) {
-    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen.</p>';
+    pbResult.innerHTML = '<p class="empty-msg">Bitte Produkt wählen.</p>';
     return;
   }
   if (project === 'pawvero' && !einkaufspreis) {
-    pbResult.innerHTML = '<p class="umsatz-empty">Bitte Einkaufspreis eingeben.</p>';
+    pbResult.innerHTML = '<p class="empty-msg">Bitte Einkaufspreis eingeben.</p>';
     return;
   }
 
   pbGenerateBtn.disabled = true;
   pbGenerateBtn.textContent = 'GENERIERT…';
-  pbResult.innerHTML = '<p class="umsatz-empty">Erstellt Text…</p>';
+  pbResult.innerHTML = '<p class="empty-msg">Erstellt Text…</p>';
 
   try {
     const res = await fetch('/api/produktbeschreibungen/generate', {
@@ -381,7 +467,7 @@ pbGenerateBtn.addEventListener('click', async () => {
     const data = await res.json();
 
     if (data.error) {
-      pbResult.innerHTML = `<p class="umsatz-empty">${data.error}</p>`;
+      pbResult.innerHTML = `<p class="empty-msg">${data.error}</p>`;
       pbLastDraft = null;
       return;
     }
@@ -401,7 +487,7 @@ pbGenerateBtn.addEventListener('click', async () => {
 
     document.getElementById('pb-apply').addEventListener('click', onPbApply);
   } catch (err) {
-    pbResult.innerHTML = '<p class="umsatz-empty">Generierung fehlgeschlagen.</p>';
+    pbResult.innerHTML = '<p class="empty-msg">Generierung fehlgeschlagen.</p>';
   } finally {
     pbGenerateBtn.disabled = false;
     pbGenerateBtn.textContent = 'GENERIEREN';
@@ -434,6 +520,7 @@ async function onPbApply(e) {
     if (result.ok) {
       btn.textContent = 'ÜBERNOMMEN';
       btn.classList.add('done');
+      loadActivity();
     } else {
       btn.textContent = result.error || 'FEHLGESCHLAGEN';
       btn.disabled = false;
@@ -444,6 +531,112 @@ async function onPbApply(e) {
   }
 }
 
+// ── LIFESTYLE-BILDER ─────────────────────────────────────────────────────
+const lbShop = document.getElementById('lb-shop');
+const lbProduct = document.getElementById('lb-product');
+const lbGenerateBtn = document.getElementById('lb-generate');
+const lbResult = document.getElementById('lb-result');
+
+let lbLastDraft = null;
+
+async function loadLbProducts() {
+  const project = lbShop.value;
+  lbProduct.innerHTML = '<option value="">Lädt…</option>';
+  try {
+    const res = await fetch(`/api/lifestyle-bilder/products?project=${project}`);
+    const data = await res.json();
+    if (data.error) {
+      lbProduct.innerHTML = `<option value="">${data.error}</option>`;
+      return;
+    }
+    lbProduct.innerHTML = '<option value="">Produkt wählen…</option>' +
+      data.products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
+  } catch (err) {
+    lbProduct.innerHTML = '<option value="">Abruf fehlgeschlagen</option>';
+  }
+}
+
+lbShop.addEventListener('change', () => {
+  lbResult.innerHTML = '';
+  lbLastDraft = null;
+  loadLbProducts();
+});
+
+lbGenerateBtn.addEventListener('click', async () => {
+  const project = lbShop.value;
+  const productId = Number(lbProduct.value);
+
+  if (!productId) {
+    lbResult.innerHTML = '<p class="empty-msg">Bitte Produkt wählen.</p>';
+    return;
+  }
+
+  lbGenerateBtn.disabled = true;
+  lbGenerateBtn.textContent = 'GENERIERT…';
+  lbResult.innerHTML = '<p class="empty-msg">Erstellt Lifestyle-Bilder…</p>';
+
+  try {
+    const res = await fetch('/api/lifestyle-bilder/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project, productId })
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      lbResult.innerHTML = `<p class="empty-msg">${data.error}</p>`;
+      lbLastDraft = null;
+      return;
+    }
+
+    lbLastDraft = { ...data, productId };
+    lbResult.innerHTML = `
+      <div class="lb-quelle">Quellbild:<br><img src="${data.quellbild}" alt="Quellbild"></div>
+      <div class="lb-images">${data.bilder.map(url => `<div class="lb-image-card"><img src="${url}" alt="Lifestyle-Variante"></div>`).join('')}</div>
+      <button class="apply-btn" id="lb-apply" type="button">ÜBERNEHMEN IN GALERIE</button>
+    `;
+
+    document.getElementById('lb-apply').addEventListener('click', onLbApply);
+  } catch (err) {
+    lbResult.innerHTML = '<p class="empty-msg">Generierung fehlgeschlagen.</p>';
+  } finally {
+    lbGenerateBtn.disabled = false;
+    lbGenerateBtn.textContent = 'GENERIEREN';
+  }
+});
+
+async function onLbApply(e) {
+  if (!lbLastDraft) return;
+  const btn = e.currentTarget;
+  btn.disabled = true;
+  btn.textContent = 'WIRD ÜBERNOMMEN…';
+
+  try {
+    const res = await fetch('/api/lifestyle-bilder/apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        project: lbShop.value,
+        productId: lbLastDraft.productId,
+        imageUrls: lbLastDraft.bilder
+      })
+    });
+    const result = await res.json();
+    if (result.ok) {
+      btn.textContent = `ÜBERNOMMEN (${result.hinzugefuegt})`;
+      btn.classList.add('done');
+      loadActivity();
+    } else {
+      btn.textContent = result.error || 'FEHLGESCHLAGEN';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    btn.textContent = 'FEHLGESCHLAGEN';
+    btn.disabled = false;
+  }
+}
+
+// ── CHAT / SPRACHSTEUERUNG ───────────────────────────────────────────────
 const chatLog = document.getElementById('chat-log');
 const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send');
@@ -506,6 +699,7 @@ async function sendChatMessage(text) {
     loadLager();
     loadRabatt();
     loadCross();
+    loadActivity();
   } catch (err) {
     chatHistory.push({ role: 'assistant', content: 'Verbindung fehlgeschlagen.' });
     renderChat();
@@ -567,109 +761,6 @@ if (SpeechRecognitionImpl) {
   micBtn.title = 'Spracheingabe nicht unterstützt (Chrome/Edge nötig)';
 }
 
-const lbShop = document.getElementById('lb-shop');
-const lbProduct = document.getElementById('lb-product');
-const lbGenerateBtn = document.getElementById('lb-generate');
-const lbResult = document.getElementById('lb-result');
-
-let lbLastDraft = null;
-
-async function loadLbProducts() {
-  const project = lbShop.value;
-  lbProduct.innerHTML = '<option value="">Lädt…</option>';
-  try {
-    const res = await fetch(`/api/lifestyle-bilder/products?project=${project}`);
-    const data = await res.json();
-    if (data.error) {
-      lbProduct.innerHTML = `<option value="">${data.error}</option>`;
-      return;
-    }
-    lbProduct.innerHTML = '<option value="">Produkt wählen…</option>' +
-      data.products.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
-  } catch (err) {
-    lbProduct.innerHTML = '<option value="">Abruf fehlgeschlagen</option>';
-  }
-}
-
-lbShop.addEventListener('change', () => {
-  lbResult.innerHTML = '';
-  lbLastDraft = null;
-  loadLbProducts();
-});
-
-lbGenerateBtn.addEventListener('click', async () => {
-  const project = lbShop.value;
-  const productId = Number(lbProduct.value);
-
-  if (!productId) {
-    lbResult.innerHTML = '<p class="umsatz-empty">Bitte Produkt wählen.</p>';
-    return;
-  }
-
-  lbGenerateBtn.disabled = true;
-  lbGenerateBtn.textContent = 'GENERIERT…';
-  lbResult.innerHTML = '<p class="umsatz-empty">Erstellt Lifestyle-Bilder…</p>';
-
-  try {
-    const res = await fetch('/api/lifestyle-bilder/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ project, productId })
-    });
-    const data = await res.json();
-
-    if (data.error) {
-      lbResult.innerHTML = `<p class="umsatz-empty">${data.error}</p>`;
-      lbLastDraft = null;
-      return;
-    }
-
-    lbLastDraft = { ...data, productId };
-    lbResult.innerHTML = `
-      <div class="lb-quelle">Quellbild:<br><img src="${data.quellbild}" alt="Quellbild"></div>
-      <div class="lb-images">${data.bilder.map(url => `<div class="lb-image-card"><img src="${url}" alt="Lifestyle-Variante"></div>`).join('')}</div>
-      <button class="apply-btn" id="lb-apply" type="button">ÜBERNEHMEN IN GALERIE</button>
-    `;
-
-    document.getElementById('lb-apply').addEventListener('click', onLbApply);
-  } catch (err) {
-    lbResult.innerHTML = '<p class="umsatz-empty">Generierung fehlgeschlagen.</p>';
-  } finally {
-    lbGenerateBtn.disabled = false;
-    lbGenerateBtn.textContent = 'GENERIEREN';
-  }
-});
-
-async function onLbApply(e) {
-  if (!lbLastDraft) return;
-  const btn = e.currentTarget;
-  btn.disabled = true;
-  btn.textContent = 'WIRD ÜBERNOMMEN…';
-
-  try {
-    const res = await fetch('/api/lifestyle-bilder/apply', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        project: lbShop.value,
-        productId: lbLastDraft.productId,
-        imageUrls: lbLastDraft.bilder
-      })
-    });
-    const result = await res.json();
-    if (result.ok) {
-      btn.textContent = `ÜBERNOMMEN (${result.hinzugefuegt})`;
-      btn.classList.add('done');
-    } else {
-      btn.textContent = result.error || 'FEHLGESCHLAGEN';
-      btn.disabled = false;
-    }
-  } catch (err) {
-    btn.textContent = 'FEHLGESCHLAGEN';
-    btn.disabled = false;
-  }
-}
-
 renderChat();
 
 loadConfig();
@@ -679,3 +770,4 @@ loadRabatt();
 loadCross();
 loadPbProducts();
 loadLbProducts();
+loadActivity();
