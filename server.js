@@ -7,6 +7,7 @@ const rabattAutomatik = require('./modules/rabatt-automatik');
 const crossSelling = require('./modules/cross-selling');
 const produktbeschreibungen = require('./modules/produktbeschreibungen');
 const lifestyleBilder = require('./modules/lifestyle-bilder');
+const activityLog = require('./modules/activity-log');
 const jarvisChat = require('./modules/jarvis-chat');
 
 const app = express();
@@ -185,6 +186,14 @@ app.post('/api/lifestyle-bilder/apply', async (req, res) => {
   try {
     const result = await lifestyleBilder.applyImages(project, productId, imageUrls);
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/activity', (req, res) => {
+  try {
+    res.json({ entries: activityLog.list(20) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
