@@ -14,8 +14,8 @@ const SHOP_ENV = {
 // Bilder sich sichtbar unterscheiden (Winkel/Szene), nicht nur zufällig variieren.
 const PROMPTS = {
   pawvero: [
-    'Professional lifestyle product photography. Show the exact product from the reference image in authentic real-world use with a happy dog. If the reference image already shows a real environment (e.g. a car interior, a room, or outdoors), keep that same environment — do not swap it for an unrelated setting. Only if the reference image is a plain studio shot with no environment, place the product in whichever real-world setting naturally matches its intended use (car safety gear → inside a car, walking gear → outdoors, home comfort items → indoors). Natural editorial pet-brand photography lighting, photorealistic, preserve exact product design, shape and color from the reference image, no added text, no logo changes.',
-    'Professional lifestyle product photography. Same instructions as before, but a different camera angle and moment: show the exact product from the reference image in authentic real-world use with a happy dog. If the reference image already shows a real environment, keep that same environment — do not swap it for an unrelated setting. Only if the reference image is a plain studio shot with no environment, place the product in whichever real-world setting naturally matches its intended use. Natural editorial pet-brand photography lighting, photorealistic, preserve exact product design, shape and color from the reference image, no added text, no logo changes.'
+    'Professional lifestyle product photography. Show the exact product from the reference image in authentic real-world use with a happy pet. Determine the correct pet species (dog or cat) from the product name/category given below and from what the reference image itself shows — never default to a dog if the product is clearly designed for a cat, or vice versa. If the reference image already shows a real environment (e.g. a car interior, a room, or outdoors), keep that same environment — do not swap it for an unrelated setting. Only if the reference image is a plain studio shot with no environment, place the product in whichever real-world setting naturally matches its intended use (car safety gear → inside a car, walking gear → outdoors, home comfort items → indoors). Natural editorial pet-brand photography lighting, photorealistic, preserve exact product design, shape and color from the reference image, no added text, no logo changes.',
+    'Professional lifestyle product photography. Same instructions as before, but a different camera angle and moment: show the exact product from the reference image in authentic real-world use with a happy pet. Determine the correct pet species (dog or cat) from the product name/category given below and from what the reference image itself shows — never default to a dog if the product is clearly designed for a cat, or vice versa. If the reference image already shows a real environment, keep that same environment — do not swap it for an unrelated setting. Only if the reference image is a plain studio shot with no environment, place the product in whichever real-world setting naturally matches its intended use. Natural editorial pet-brand photography lighting, photorealistic, preserve exact product design, shape and color from the reference image, no added text, no logo changes.'
   ],
   wabipaper: [
     'Professional interior photography. Show the exact art print from the reference image framed and hanging on a wall in a minimalist Japandi-style living room, soft natural daylight, wide shot, editorial interior-design-magazine style, photorealistic, preserve the exact artwork design from the reference image, no added text.',
@@ -103,9 +103,10 @@ async function generateImages(project, productId) {
 
   const prompts = PROMPTS[project];
   const bilder = [];
+  const categoryNames = (product.categories || []).map((c) => c.name).join(', ') || 'unbekannt';
 
   for (const promptTemplate of prompts) {
-    const prompt = `Product name: "${product.name}". ${promptTemplate}`;
+    const prompt = `Product name: "${product.name}". Product category: "${categoryNames}". ${promptTemplate}`;
     try {
       const output = await replicate.run('google/nano-banana-pro', {
         input: { prompt, image_input: [sourceImage] }
