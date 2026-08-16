@@ -166,18 +166,22 @@ async function generatePawvero(productId, einkaufspreis, auth) {
 
   const { keywords, warnung } = await fetchKeywords(`${product.name} Hund kaufen`);
   const price = calcPawveroPrice(einkaufspreis);
+  const category = product.categories?.[0];
 
   const prompt = `Du schreibst für Pawvero, einen deutschen Online-Shop für Hundezubehör mit "Fluidcore"-Ästhetik (verspielt, hochwertig, modern). Produktname: "${product.name}". Kategorie: ${(product.categories || []).map((c) => c.name).join(', ') || 'unbekannt'}.
 ${keywords.length ? `Relevante Suchbegriffe aus echter Google-Recherche: ${keywords.join(', ')}` : ''}
 
-Schreibe:
-1. Eine conversion-optimierte Produktbeschreibung auf Deutsch (150-250 Wörter, Vorteile klar herausstellen, aktivierende Sprache, aber nicht reißerisch)
-2. 5-8 passende WooCommerce-Schlagwörter (Tags)
-3. Einen Yoast SEO Meta-Title (max 60 Zeichen)
-4. Eine Yoast Meta-Description (max 155 Zeichen)
-5. Ein Yoast Focus-Keyword
+Wähle zuerst ein Focus-Keyword (2-3 Wörter, an der Suchintention orientiert, idealerweise aus den Suchbegriffen oben).
 
-Antworte NUR als JSON mit den Feldern: description, tags (Array), metaTitle, metaDescription, focusKeyword. Kein Markdown, kein Text davor oder danach.`;
+Schreibe dann für gute Yoast-SEO-Bewertung — ALLE Punkte sind Pflicht:
+1. Produktbeschreibung auf Deutsch, MINDESTENS 300 Wörter, conversion-optimiert. Das Focus-Keyword muss im ERSTEN Satz vorkommen und insgesamt mindestens 3x natürlich im Text erscheinen (nicht künstlich wiederholt).
+2. 5-8 passende WooCommerce-Schlagwörter (Tags)
+3. SEO Meta-Title (max 60 Zeichen), der mit dem Focus-Keyword BEGINNT
+4. Meta-Description (max 155 Zeichen), die das Focus-Keyword enthält
+5. Das Focus-Keyword selbst als eigenes Feld
+6. Einen URL-Slug (nur Kleinbuchstaben, Bindestriche, keine Sonderzeichen), der das Focus-Keyword enthält
+
+Antworte NUR als JSON mit den Feldern: description, tags (Array), metaTitle, metaDescription, focusKeyword, slug. Kein Markdown, kein Text davor oder danach.`;
 
   const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -196,7 +200,14 @@ Antworte NUR als JSON mit den Feldern: description, tags (Array), metaTitle, met
     return { error: 'Claude-Antwort konnte nicht als JSON gelesen werden' };
   }
 
-  return { productId, produkt: product.name, einkaufspreis, vorschlagPreis: price, ...parsed, keywordHinweis: warnung || null };
+  const linkParts = [];
+  if (category) {
+    linkParts.push(`Mehr aus dieser Kategorie findest du in unserer <a href="${auth.base}/produkt-kategorie/${category.slug}/">${category.name}-Kollektion</a>.`);
+  }
+  linkParts.push('Grundlegende Infos rund um Hunde und ihre Bedürfnisse gibt\'s z. B. bei <a href="https://de.wikipedia.org/wiki/Hund" target="_blank" rel="noopener">Wikipedia</a>.');
+  const description = `${parsed.description}\n<p>${linkParts.join(' ')}</p>`;
+
+  return { productId, produkt: product.name, einkaufspreis, vorschlagPreis: price, ...parsed, description, keywordHinweis: warnung || null };
 }
 
 async function generateViaStudio(project, productId, auth) {
@@ -253,7 +264,7 @@ async function applyContent(project, payload) {
   const auth = shopAuth(project);
   if (!auth) return { ok: false, error: 'WooCommerce-Zugangsdaten fehlen' };
 
-  const { productId, description, tags, metaTitle, metaDescription, focusKeyword, price } = payload;
+  const { productId, description, tags, metaTitle, metaDescription, focusKeyword, price, slug } = payload;
 
   const body = {
     description,
@@ -265,6 +276,7 @@ async function applyContent(project, payload) {
     ]
   };
   if (price) body.regular_price = String(price);
+  if (slug) body.slug = slug;
 
   const res = await fetch(`${auth.base}/wp-json/wc/v3/products/${productId}`, {
     method: 'PUT',
