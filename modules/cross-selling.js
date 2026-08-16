@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const activityLog = require('./activity-log');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const MODULE_ID = 'cross-selling';
@@ -50,6 +51,7 @@ async function fetchAllPaged(base, headers, endpointPath) {
   return all;
 }
 
+// Zählt, wie oft je zwei Produkte in derselben Bestellung vorkamen
 function buildCoOccurrence(orders) {
   const pairCounts = {};
   const names = {};
@@ -113,6 +115,7 @@ async function run() {
   return Promise.all(projects.map(findSuggestions));
 }
 
+// Setzt die Vorschläge als native WooCommerce Cross-Sells auf dem Produkt
 async function applyCrossSell(project, productId, crossSellIds) {
   const level = getLevel(project);
   if (level !== 'freigabe' && level !== 'autonom') {
@@ -130,6 +133,13 @@ async function applyCrossSell(project, productId, crossSellIds) {
 
   if (!res.ok) return { ok: false, error: `Cross-Sells setzen fehlgeschlagen (${res.status})` };
   const product = await res.json();
+
+  activityLog.record({
+    project,
+    modul: 'cross-selling',
+    nachricht: `Cross-Sells gesetzt: ${product.name} (${crossSellIds.length} Produkte verknüpft)`,
+    level
+  });
 
   return { ok: true, project, produkt: product.name, crossSellIds };
 }
