@@ -394,6 +394,7 @@ pbGenerateBtn.addEventListener('click', async () => {
       <div class="pb-field"><span class="label">META-TITLE</span><span class="value">${data.metaTitle || ''}</span></div>
       <div class="pb-field"><span class="label">META-DESCRIPTION</span><span class="value">${data.metaDescription || ''}</span></div>
       <div class="pb-field"><span class="label">FOCUS-KEYWORD</span><span class="value">${data.focusKeyword || ''}</span></div>
+      ${data.slug ? `<div class="pb-field"><span class="label">URL-SLUG</span><span class="value">${data.slug}</span></div>` : ''}
       ${data.keywordHinweis ? `<div class="pb-field"><span class="label">HINWEIS</span><span class="value">${data.keywordHinweis}</span></div>` : ''}
       <button class="apply-btn" id="pb-apply" type="button">ÜBERNEHMEN NACH WOOCOMMERCE</button>
     `;
@@ -425,6 +426,7 @@ async function onPbApply(e) {
         metaTitle: pbLastDraft.metaTitle,
         metaDescription: pbLastDraft.metaDescription,
         focusKeyword: pbLastDraft.focusKeyword,
+        slug: pbLastDraft.slug,
         price: pbLastDraft.vorschlagPreis
       })
     });
