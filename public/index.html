@@ -3,39 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jarvis // Root Node</title>
+<title>Jarvis // Mission Control</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="header">
-  <div class="sigil" aria-hidden="true">
-    <svg viewBox="0 0 100 100" width="44" height="44">
-      <path class="sigil-hex" d="M50 4 L91 27 L91 73 L50 96 L14 76" />
-      <circle class="sigil-node" cx="50" cy="4" r="3.5" />
-      <circle class="sigil-node" cx="91" cy="73" r="3.5" />
-      <circle class="sigil-node" cx="14" cy="76" r="3.5" />
-      <path class="sigil-glitch" d="M91 27 L78 34 M78 34 L91 40" />
+  <div class="brand-mark">
+    <svg width="40" height="40" viewBox="0 0 100 100">
+      <polygon class="sigil-hex" points="50,6 90,28 90,72 50,94 10,72 10,28" />
+      <circle class="sigil-node" cx="50" cy="50" r="5" />
+      <line class="sigil-glitch" x1="50" y1="6" x2="50" y2="35" stroke-width="1.5" />
+      <line class="sigil-glitch" x1="50" y1="65" x2="50" y2="94" stroke-width="1.5" />
     </svg>
+    <div class="header-text">
+      <h1>JARVIS</h1>
+      <p class="subtitle">MISSION CONTROL — MAGNATRADE-AI</p>
+    </div>
   </div>
-  <div class="header-text">
-    <h1>JARVIS</h1>
-    <p class="subtitle">ROOT NODE // 4 SEKTOREN VERBUNDEN</p>
-  </div>
-  <div class="status" id="status">
-    <span class="status-dot"></span>
-    <span id="status-label">VERBINDE…</span>
+  <div class="hero-stat">
+    <div class="label">UMSATZ · ALLE SHOPS · 30 TAGE</div>
+    <div class="value mono" id="hero-umsatz">–</div>
   </div>
 </header>
 
+<div class="ticker">
+  <div class="ticker-track" id="ticker-track">
+    <span class="ticker-item">System bereit — noch keine Daten geladen</span>
+  </div>
+</div>
+
 <main>
+
   <section class="panel">
-    <div class="panel-head">
-      <h2>MIT JARVIS SPRECHEN</h2>
-      <p class="hint">Mikrofon oder Text — Jarvis kann alles steuern, was in den Panels unten möglich ist. Spracheingabe braucht Chrome oder Edge.</p>
+    <div class="console-head">
+      <span class="label">MIT JARVIS SPRECHEN</span>
+      <span class="status" id="status"><span class="status-dot"></span><span id="status-label">VERBINDE…</span></span>
     </div>
 
     <div id="chat-log" class="chat-log"></div>
@@ -43,19 +49,19 @@
     <div class="chat-controls">
       <button class="mic-btn" id="mic-btn" type="button" title="Sprechen">🎤</button>
       <input id="chat-input" type="text" placeholder="Nachricht an Jarvis…">
-      <button class="refresh-btn" id="chat-send" type="button">SENDEN</button>
+      <button class="refresh-btn" id="chat-send" type="button" style="margin-bottom:0;">SENDEN</button>
       <button class="mic-btn" id="tts-toggle" type="button" title="Antworten vorlesen">🔊</button>
     </div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
-      <h2>STEUERMATRIX</h2>
-      <p class="hint">PROJEKT × FUNKTION × FREIGABESTUFE — Klick auf ein Feld schaltet die Stufe weiter</p>
+      <h2>STEUERKONSOLE</h2>
+      <p class="hint">PROJEKT × FUNKTION — Klick auf den Regler schaltet die Freigabestufe weiter</p>
     </div>
 
     <div class="table-wrap">
-      <table id="matrix">
+      <table class="fg" id="matrix">
         <thead>
           <tr id="matrix-head"></tr>
         </thead>
@@ -64,55 +70,62 @@
     </div>
 
     <div class="legend">
-      <div class="legend-item"><span class="node off"></span> AUS</div>
-      <div class="legend-item"><span class="node beobachten"></span> BEOBACHTEN</div>
-      <div class="legend-item"><span class="node freigabe"></span> VORSCHLAG · FREIGABE</div>
-      <div class="legend-item"><span class="node autonom"></span> AUTONOM</div>
+      <div class="legend-item"><span class="seg-sample"></span> AUS</div>
+      <div class="legend-item"><span class="seg-sample watch"></span> BEOBACHTEN</div>
+      <div class="legend-item"><span class="seg-sample approve"></span> FREIGABE</div>
+      <div class="legend-item"><span class="seg-sample auto"></span> AUTONOM</div>
     </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>AKTIVITÄTSPROTOKOLL</h2>
+      <p class="hint">Was Jarvis selbstständig oder auf Freigabe hin erledigt hat</p>
+    </div>
+    <div class="activity-list" id="activity-list"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>UMSATZ // LETZTE 30 TAGE</h2>
-      <p class="hint">Nur Projekte mit aktiver Umsatz-Analyse (Matrix oben) werden geladen</p>
+      <p class="hint">Nur Projekte mit aktiver Umsatz-Analyse (Steuerkonsole oben) werden geladen</p>
     </div>
     <button class="refresh-btn" id="refresh-umsatz" type="button">AKTUALISIEREN</button>
-    <div class="umsatz-grid" id="umsatz-grid"></div>
+    <div class="card-grid" id="umsatz-grid"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>LAGERBESTAND</h2>
-      <p class="hint">Warnt bei Bestand ≤ 5 oder ausverkauft — nur aktive Projekte (Matrix oben)</p>
+      <p class="hint">Warnt bei Bestand ≤ 5 oder ausverkauft</p>
     </div>
     <button class="refresh-btn" id="refresh-lager" type="button">AKTUALISIEREN</button>
-    <div class="lager-grid" id="lager-grid"></div>
+    <div class="card-grid stack" id="lager-grid"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>RABATT-AUTOMATIK // LAGERHÜTER</h2>
-      <p class="hint">Bestand ≥ 20 und ≤ 1 Verkauf in 60 Tagen — Anwenden nur bei FREIGABE/AUTONOM aktiv, AUTONOM läuft zusätzlich alle 6h automatisch</p>
+      <p class="hint">Bestand ≥ 20 und ≤ 1 Verkauf in 60 Tagen — Anwenden nur bei FREIGABE/AUTONOM, AUTONOM läuft zusätzlich alle 6h automatisch</p>
     </div>
     <button class="refresh-btn" id="refresh-rabatt" type="button">AKTUALISIEREN</button>
-    <div class="rabatt-grid" id="rabatt-grid"></div>
+    <div class="card-grid stack" id="rabatt-grid"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>CROSS-SELLING-VORSCHLÄGE</h2>
-      <p class="hint">Basiert auf gemeinsam gekauften Produkten (letzte 90 Tage) — braucht Bestellhistorie, bleibt bis dahin leer</p>
+      <p class="hint">Basiert auf gemeinsam gekauften Produkten (letzte 90 Tage)</p>
     </div>
     <button class="refresh-btn" id="refresh-cross" type="button">AKTUALISIEREN</button>
-    <div class="cross-grid" id="cross-grid"></div>
+    <div class="card-grid stack" id="cross-grid"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>PRODUKTBESCHREIBUNGEN</h2>
-      <p class="hint">Pawvero: eigene Erstellung inkl. Preisformel. Wabipaper/Luminara: nutzt deren bestehende Content-Writer-Agenten. Schreibt Text, Tags, SEO-Felder und (wo ableitbar) Preis nach WooCommerce</p>
+      <p class="hint">Nur Produkte im Status "Entwurf". Pawvero: eigene Erstellung inkl. Preisformel. Wabipaper/Luminara: nutzt deren Content-Writer-Agenten</p>
     </div>
-
     <div class="pb-controls">
       <select id="pb-shop">
         <option value="pawvero">Pawvero</option>
@@ -121,29 +134,27 @@
       </select>
       <select id="pb-product"><option value="">Produkt wählen…</option></select>
       <input id="pb-einkaufspreis" type="number" step="0.01" min="0" placeholder="Einkaufspreis € (nur Pawvero)">
-      <button class="refresh-btn" id="pb-generate" type="button">GENERIEREN</button>
+      <button class="refresh-btn" id="pb-generate" type="button" style="margin-bottom:0;">GENERIEREN</button>
     </div>
-
     <div class="pb-result" id="pb-result"></div>
   </section>
 
   <section class="panel">
     <div class="panel-head">
       <h2>LIFESTYLE-BILDER</h2>
-      <p class="hint">Nur Pawvero & Wabipaper, nur Produkte im Status "Entwurf". Generiert 2 Bild-zu-Bild-Varianten aus dem vorhandenen Produktbild via Replicate — Übernehmen schreibt sie in die WooCommerce-Galerie</p>
+      <p class="hint">Nur Pawvero & Wabipaper, nur Produkte im Status "Entwurf". Bild-zu-Bild-Varianten via Replicate</p>
     </div>
-
     <div class="pb-controls">
       <select id="lb-shop">
         <option value="pawvero">Pawvero</option>
         <option value="wabipaper">Wabipaper</option>
       </select>
       <select id="lb-product"><option value="">Produkt wählen…</option></select>
-      <button class="refresh-btn" id="lb-generate" type="button">GENERIEREN</button>
+      <button class="refresh-btn" id="lb-generate" type="button" style="margin-bottom:0;">GENERIEREN</button>
     </div>
-
     <div class="lb-result" id="lb-result"></div>
   </section>
+
 </main>
 
 <footer>
