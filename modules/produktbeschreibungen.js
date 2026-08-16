@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const activityLog = require('./activity-log');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const MODULE_ID = 'produktbeschreibungen';
@@ -200,6 +201,7 @@ Antworte NUR als JSON mit den Feldern: description, tags (Array), metaTitle, met
     return { error: 'Claude-Antwort konnte nicht als JSON gelesen werden' };
   }
 
+  // Interne + ausgehende Links werden von uns gesetzt (echte URLs), nicht von Claude erfunden
   const linkParts = [];
   if (category) {
     linkParts.push(`Mehr aus dieser Kategorie findest du in unserer <a href="${auth.base}/produkt-kategorie/${category.slug}/">${category.name}-Kollektion</a>.`);
@@ -286,6 +288,13 @@ async function applyContent(project, payload) {
 
   if (!res.ok) return { ok: false, error: `Speichern fehlgeschlagen (${res.status})` };
   const product = await res.json();
+
+  activityLog.record({
+    project,
+    modul: 'produktbeschreibungen',
+    nachricht: `Produktbeschreibung übernommen: ${product.name}${price ? ` — Preis ${price} €` : ''}`,
+    level
+  });
 
   return { ok: true, project, produkt: product.name };
 }
