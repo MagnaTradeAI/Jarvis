@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const activityLog = require('./activity-log');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const MODULE_ID = 'rabatt-automatik';
@@ -158,6 +159,13 @@ async function applyDiscount(project, productId, percent = DISCOUNT_PERCENT) {
     const coupon = await couponRes.json();
     couponCode = coupon.code;
   }
+
+  activityLog.record({
+    project,
+    modul: 'rabatt-automatik',
+    nachricht: `Rabatt gesetzt: ${product.name} — ${percent}% ${couponCode ? `+ Coupon ${couponCode}` : ''}`.trim(),
+    level
+  });
 
   return {
     ok: true,
