@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const activityLog = require('./activity-log');
 
 const CONFIG_PATH = path.join(__dirname, '..', 'config.json');
 const MODULE_ID = 'lifestyle-bilder';
@@ -142,6 +143,13 @@ async function applyImages(project, productId, imageUrls) {
 
   if (!res.ok) return { ok: false, error: `Speichern fehlgeschlagen (${res.status})` };
   const updated = await res.json();
+
+  activityLog.record({
+    project,
+    modul: 'lifestyle-bilder',
+    nachricht: `${imageUrls.length} Lifestyle-Bilder in Galerie übernommen: ${updated.name}`,
+    level
+  });
 
   return { ok: true, project, produkt: updated.name, hinzugefuegt: imageUrls.length };
 }
