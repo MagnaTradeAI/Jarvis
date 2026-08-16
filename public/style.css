@@ -114,7 +114,8 @@ h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
 .ticker-item .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 .ticker-item .warn { color: var(--hot); }
 
-main { padding: 24px; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+main { padding: 24px; max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.span-2 { grid-column: 1 / -1; }
 
 .panel { border: 1px solid var(--line); background: var(--panel); padding: 20px; }
 .panel-head h2 { font-size: 14px; letter-spacing: 0.04em; color: var(--amber); }
@@ -319,7 +320,7 @@ footer { text-align: center; padding: 24px; font-family: 'JetBrains Mono', monos
   .hero-stat { margin-left: auto; text-align: right; }
   .hero-stat .value { font-size: 20px; }
 
-  main { padding: 14px; gap: 16px; }
+  main { padding: 14px; gap: 16px; grid-template-columns: 1fr; }
   .panel { padding: 14px; }
   .console-head { margin: -14px -14px 14px; padding: 12px 14px; }
   .panel-head h2 { font-size: 13px; }
