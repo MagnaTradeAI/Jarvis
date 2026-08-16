@@ -103,7 +103,8 @@ async function generateImages(project, productId) {
   const prompts = PROMPTS[project];
   const bilder = [];
 
-  for (const prompt of prompts) {
+  for (const promptTemplate of prompts) {
+    const prompt = `Product name: "${product.name}". ${promptTemplate}`;
     try {
       const output = await replicate.run('google/nano-banana-pro', {
         input: { prompt, image_input: [sourceImage] }
