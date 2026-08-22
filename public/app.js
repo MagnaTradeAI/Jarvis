@@ -482,6 +482,7 @@ pbGenerateBtn.addEventListener('click', async () => {
       <div class="pb-field"><span class="label">FOCUS-KEYWORD</span><span class="value">${data.focusKeyword || ''}</span></div>
       ${data.slug ? `<div class="pb-field"><span class="label">URL-SLUG</span><span class="value">${data.slug}</span></div>` : ''}
       ${data.keywordHinweis ? `<div class="pb-field"><span class="label">HINWEIS</span><span class="value">${data.keywordHinweis}</span></div>` : ''}
+      ${data.bildHinweis ? `<div class="pb-field"><span class="label">HINWEIS</span><span class="value">${data.bildHinweis}</span></div>` : ''}
       <button class="apply-btn" id="pb-apply" type="button">ÜBERNEHMEN NACH WOOCOMMERCE</button>
     `;
 
