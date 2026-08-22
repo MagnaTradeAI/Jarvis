@@ -16,11 +16,11 @@ const SHOP_ENV = {
 const STUDIOS = {
   wabipaper: {
     endpoint: 'https://wabipaper-ai-production.up.railway.app/api/chat',
-    buildBody: (system, userText) => ({
+    buildBody: (system, content) => ({
       model: 'claude-sonnet-4-5',
       max_tokens: 1500,
       system,
-      messages: [{ role: 'user', content: userText }]
+      messages: [{ role: 'user', content }]
     }),
     system: `Du bist der Content Writer von Wabipaper. Du schreibst deutsche Produktbeschreibungen und Marketingtexte für Wabipaper-Kunstdrucke.
 
@@ -63,9 +63,9 @@ WooCommerce-taugliches HTML wenn gewünscht. Antworte auf Deutsch.`
   },
   luminara: {
     endpoint: 'https://magnatradeai-luminara-studio-production.up.railway.app/api/agent',
-    buildBody: (system, userText) => ({
+    buildBody: (system, content) => ({
       system,
-      messages: [{ role: 'user', content: [{ type: 'text', text: userText }] }]
+      messages: [{ role: 'user', content }]
     }),
     system: `Du bist der POD Manager des Luminara Syndicate — Spezialist für Print-on-Demand Produktmanagement.
 Du denkst in Conversion, Fulfillment und Produktstrategie.
@@ -212,6 +212,18 @@ Antworte NUR als JSON mit den Feldern: description, tags (Array), metaTitle, met
   return { productId, produkt: product.name, einkaufspreis, vorschlagPreis: price, ...parsed, description, keywordHinweis: warnung || null };
 }
 
+async function fetchImageAsBase64(url) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const contentType = (res.headers.get('content-type') || 'image/jpeg').split(';')[0];
+    const buffer = await res.arrayBuffer();
+    return { mediaType: contentType, data: Buffer.from(buffer).toString('base64') };
+  } catch (err) {
+    return null;
+  }
+}
+
 async function generateViaStudio(project, productId, auth) {
   const studio = STUDIOS[project];
   const productRes = await fetch(`${auth.base}/wp-json/wc/v3/products/${productId}`, { headers: auth.headers });
@@ -219,10 +231,28 @@ async function generateViaStudio(project, productId, auth) {
   const product = await productRes.json();
 
   const userText = project === 'luminara'
-    ? `Erstelle einen vollständigen Produkttext für folgendes Syndicate-Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich, inkl. Bullet Points als <ul><li>), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Preis nach deinem bekannten Preisrahmen ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Kein Markdown, kein Text davor oder danach.`
-    : `Erstelle eine vollständige Produktbeschreibung für folgendes Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Verkaufspreis anhand von Format/Größe ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Kein Markdown, kein Text davor oder danach.`;
+    ? `Analysiere das Produktbild und erstelle einen vollständigen Produkttext für folgendes Syndicate-Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich, inkl. Bullet Points als <ul><li>), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Preis nach deinem bekannten Preisrahmen ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Erwähne keine Tool- oder Dienstleister-Namen (z.B. Flux, Replicate, Gelato). Kein Markdown, kein Text davor oder danach.`
+    : `Analysiere das Produktbild und erstelle eine vollständige Produktbeschreibung für folgendes Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Verkaufspreis anhand von Format/Größe ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Kein Markdown, kein Text davor oder danach.`;
 
-  const body = studio.buildBody(studio.system, userText);
+  const sourceImage = product.images?.[0]?.src;
+  let content = userText;
+  let bildHinweis = null;
+
+  if (sourceImage) {
+    const img = await fetchImageAsBase64(sourceImage);
+    if (img) {
+      content = [
+        { type: 'image', source: { type: 'base64', media_type: img.mediaType, data: img.data } },
+        { type: 'text', text: userText }
+      ];
+    } else {
+      bildHinweis = 'Produktbild konnte nicht geladen werden — Text entstand ohne visuellen Kontext.';
+    }
+  } else {
+    bildHinweis = 'Kein Produktbild vorhanden — Text entstand ohne visuellen Kontext.';
+  }
+
+  const body = studio.buildBody(studio.system, content);
 
   const res = await fetch(studio.endpoint, {
     method: 'POST',
@@ -241,7 +271,7 @@ async function generateViaStudio(project, productId, auth) {
     return { error: 'Studio-Antwort konnte nicht als JSON gelesen werden' };
   }
 
-  return { productId, produkt: product.name, vorschlagPreis: parsed.price ? Number(parsed.price) : null, ...parsed };
+  return { productId, produkt: product.name, vorschlagPreis: parsed.price ? Number(parsed.price) : null, ...parsed, bildHinweis };
 }
 
 async function generateContent(project, productId, einkaufspreis) {
