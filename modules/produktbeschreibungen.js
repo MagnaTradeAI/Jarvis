@@ -229,10 +229,23 @@ async function generateViaStudio(project, productId, auth) {
   const productRes = await fetch(`${auth.base}/wp-json/wc/v3/products/${productId}`, { headers: auth.headers });
   if (!productRes.ok) return { error: `Produkt nicht gefunden (${productRes.status})` };
   const product = await productRes.json();
+  const category = product.categories?.[0];
+
+  const seoPflicht = `Wähle zuerst ein Focus-Keyword (2-3 Wörter, an der Suchintention der Zielgruppe orientiert).
+
+Pflicht für gute SEO-Bewertung — ALLE Punkte einhalten:
+1. description (HTML-tauglich, inkl. Bullet Points als <ul><li> für Produktdetails/Material/Passform): MINDESTENS 250 Wörter. Das Focus-Keyword muss im ERSTEN Satz vorkommen und insgesamt mindestens 3x natürlich im Text erscheinen (nicht künstlich wiederholt).
+2. tags (Array, 5-8 WooCommerce-Schlagwörter)
+3. metaTitle (max 60 Zeichen), der mit dem Focus-Keyword BEGINNT
+4. metaDescription (max 155 Zeichen), die das Focus-Keyword enthält
+5. focusKeyword als eigenes Feld
+6. slug (nur Kleinbuchstaben, Bindestriche, keine Sonderzeichen), der das Focus-Keyword enthält
+
+Antworte NUR als JSON mit den Feldern: description, tags, metaTitle, metaDescription, focusKeyword, slug${project === 'luminara' ? ', ggf. price (nur Zahl, ohne Symbol, falls aus deinem bekannten Preisrahmen ableitbar)' : ', ggf. price (nur Zahl, ohne Symbol, falls aus Format/Größe ableitbar)'}. Kein Markdown, kein Text davor oder danach.`;
 
   const userText = project === 'luminara'
-    ? `Analysiere das Produktbild und erstelle einen vollständigen Produkttext für folgendes Syndicate-Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich, inkl. Bullet Points als <ul><li>), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Preis nach deinem bekannten Preisrahmen ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Erwähne keine Tool- oder Dienstleister-Namen (z.B. Flux, Replicate, Gelato). Kein Markdown, kein Text davor oder danach.`
-    : `Analysiere das Produktbild und erstelle eine vollständige Produktbeschreibung für folgendes Produkt: "${product.name}". Antworte NUR als JSON mit den Feldern: description (HTML-tauglich), tags (Array, 5-8 WooCommerce-Schlagwörter), metaTitle (max 60 Zeichen), metaDescription (max 155 Zeichen), focusKeyword. Falls sich aus dem Produktnamen ein passender Verkaufspreis anhand von Format/Größe ableiten lässt, ergänze zusätzlich price (nur Zahl, ohne Symbol) — sonst lass das Feld weg. Kein Markdown, kein Text davor oder danach.`;
+    ? `Analysiere das Produktbild sorgfältig — Motiv, Farbwelt, Stil — und schreibe für folgendes Syndicate-Produkt einen vollständigen, lore-reichen Produkttext im Sektor_04_D-Ton: "${product.name}". Verankere den Text spürbar in der Core-Engine-Mythologie (Verweise auf das Syndicate, die Untergrund-Ästhetik, Sektor_04_D), nicht nur generische Produktwerbung. Beschreibe das tatsächlich sichtbare Motiv konkret (Farben, Formen, Symbole), nicht abstrakt. Erwähne keine Tool- oder Dienstleister-Namen (z.B. Flux, Replicate, Gelato).\n\n${seoPflicht}`
+    : `Analysiere das Produktbild sorgfältig — Motiv, Farbwelt, Kollektion — und schreibe für folgendes Wabipaper-Produkt einen vollständigen Produkttext, tief in der Wabi-Sabi-Philosophie verankert (Schönheit im Unvollkommenen, Vergänglichkeit, Natürlichkeit), nicht nur generische Produktwerbung: "${product.name}". Struktur: poetischer Opener im Wabi-Sabi-Ton, dann Motiv & Farbwelt konkret beschreiben, dann Stil & Kollektion benennen, dann technische Details, dann CTA.\n\n${seoPflicht}`;
 
   const sourceImage = product.images?.[0]?.src;
   let content = userText;
@@ -271,7 +284,13 @@ async function generateViaStudio(project, productId, auth) {
     return { error: 'Studio-Antwort konnte nicht als JSON gelesen werden' };
   }
 
-  return { productId, produkt: product.name, vorschlagPreis: parsed.price ? Number(parsed.price) : null, ...parsed, bildHinweis };
+  // Interner Kategorie-Link wird von uns gesetzt (echte URL), nicht vom Agenten erfunden
+  let description = parsed.description;
+  if (category && description) {
+    description += `\n<p>Mehr aus dieser Kategorie findest du in unserer <a href="${auth.base}/produkt-kategorie/${category.slug}/">${category.name}-Kollektion</a>.</p>`;
+  }
+
+  return { productId, produkt: product.name, vorschlagPreis: parsed.price ? Number(parsed.price) : null, ...parsed, description, bildHinweis };
 }
 
 async function generateContent(project, productId, einkaufspreis) {
